@@ -1344,6 +1344,43 @@ select.input-text option {
     border-color: var(--border-accent);
 }
 
+.contact-drag-handle {
+    color: var(--text-muted);
+    opacity: 0.4;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    padding: 0 4px 0 0;
+    transition: opacity 0.15s ease;
+    user-select: none;
+}
+.contact-drag-handle:hover,
+.recent-card:hover .contact-drag-handle {
+    opacity: 0.9;
+}
+.recent-card[draggable="true"] {
+    transition: transform 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.recent-card.is-dragging {
+    opacity: 0.35;
+    background: var(--bg-hover) !important;
+}
+.recent-card.drag-over-top {
+    border-top: 2px solid var(--accent-color) !important;
+    transform: translateY(-2px);
+}
+.recent-card.drag-over-bottom {
+    border-bottom: 2px solid var(--accent-color) !important;
+    transform: translateY(2px);
+}
+.recent-call-btn.btn-reorder {
+    padding: 2px;
+    opacity: 0.6;
+}
+.recent-call-btn.btn-reorder:hover:not(:disabled) {
+    opacity: 1;
+    color: var(--accent-color);
+}
 /* ==========================================================================
    TRANSFER MODAL & EXTENSIONS ROSTER
    ========================================================================== */
@@ -7302,12 +7339,59 @@ html.light-theme .vu-meter-label svg {
                 return;
             }
 
-            filtered.forEach(contact => {
+            filtered.forEach((contact, index) => {
                 const card = document.createElement('div');
                 card.className = 'recent-card';
 
+                // HTML5 Drag and Drop support
+                if (!filterLower) {
+                    card.draggable = true;
+                    card.dataset.contactId = contact.id;
+                    card.dataset.index = index;
+
+                    card.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', String(index));
+                        card.classList.add('is-dragging');
+                    });
+                    card.addEventListener('dragend', () => {
+                        card.classList.remove('is-dragging');
+                        listEl.querySelectorAll('.recent-card').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    });
+                    card.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        const rect = card.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        if (e.clientY < midY) {
+                            card.classList.add('drag-over-top');
+                            card.classList.remove('drag-over-bottom');
+                        } else {
+                            card.classList.add('drag-over-bottom');
+                            card.classList.remove('drag-over-top');
+                        }
+                    });
+                    card.addEventListener('dragleave', () => {
+                        card.classList.remove('drag-over-top', 'drag-over-bottom');
+                    });
+                    card.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        card.classList.remove('drag-over-top', 'drag-over-bottom');
+                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                        if (!isNaN(fromIdx) && fromIdx !== index) {
+                            this.reorderContactByIndex(fromIdx, index);
+                        }
+                    });
+                }
+
                 const left = document.createElement('div');
                 left.className = 'recent-left';
+
+                if (!filterLower) {
+                    const grip = document.createElement('div');
+                    grip.className = 'contact-drag-handle';
+                    grip.title = this.currentLang === 'ar' ? 'اسحب لإعادة الترتيب' : 'Drag to reorder';
+                    grip.innerHTML = '<svg width="8" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="4" r="2.5"/><circle cx="16" cy="4" r="2.5"/><circle cx="8" cy="12" r="2.5"/><circle cx="16" cy="12" r="2.5"/><circle cx="8" cy="20" r="2.5"/><circle cx="16" cy="20" r="2.5"/></svg>';
+                    left.appendChild(grip);
+                }
 
                 const avatar = document.createElement('div');
                 avatar.className = 'recent-avatar';
@@ -7332,12 +7416,43 @@ html.light-theme .vu-meter-label svg {
 
                 const right = document.createElement('div');
                 right.className = 'recent-right';
-                right.style.cssText = 'display:flex;align-items:center;gap:4px;';
+                right.style.cssText = 'display:flex;align-items:center;gap:3px;';
+
+                // Move Up and Down buttons
+                if (!filterLower) {
+                    const upBtn = document.createElement('button');
+                    upBtn.type = 'button';
+                    upBtn.className = 'recent-call-btn btn-reorder';
+                    upBtn.title = this.currentLang === 'ar' ? 'تحريك لأعلى' : 'Move Up';
+                    upBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>';
+                    upBtn.disabled = index === 0;
+                    upBtn.style.opacity = index === 0 ? '0.2' : '0.7';
+                    upBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.moveContact(contact.id, 'up');
+                    });
+
+                    const downBtn = document.createElement('button');
+                    downBtn.type = 'button';
+                    downBtn.className = 'recent-call-btn btn-reorder';
+                    downBtn.title = this.currentLang === 'ar' ? 'تحريك لأسفل' : 'Move Down';
+                    downBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+                    downBtn.disabled = index === filtered.length - 1;
+                    downBtn.style.opacity = index === filtered.length - 1 ? '0.2' : '0.7';
+                    downBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.moveContact(contact.id, 'down');
+                    });
+
+                    right.appendChild(upBtn);
+                    right.appendChild(downBtn);
+                }
 
                 // Favorite toggle
                 const favBtn = document.createElement('button');
+                favBtn.type = 'button';
                 favBtn.className = 'recent-call-btn btn-fav';
-                favBtn.title = contact.isFavorite ? 'Remove from favorites' : 'Add to favorites';
+                favBtn.title = contact.isFavorite ? (this.currentLang === 'ar' ? 'إزالة من المفضلة' : 'Remove from favorites') : (this.currentLang === 'ar' ? 'إضافة للمفضلة في الأعلى' : 'Add to top of favorites');
                 favBtn.innerHTML = contact.isFavorite ? SVG_ICONS.starFilled : SVG_ICONS.star;
                 if (contact.isFavorite) favBtn.style.color = '#f59e0b';
                 favBtn.addEventListener('click', () => {
@@ -7346,6 +7461,7 @@ html.light-theme .vu-meter-label svg {
 
                 // Call button
                 const callBtn = document.createElement('button');
+                callBtn.type = 'button';
                 callBtn.className = 'recent-call-btn btn-call';
                 callBtn.title = 'Call';
                 callBtn.innerHTML = SVG_ICONS.phone;
@@ -7356,6 +7472,7 @@ html.light-theme .vu-meter-label svg {
 
                 // Edit button
                 const editBtn = document.createElement('button');
+                editBtn.type = 'button';
                 editBtn.className = 'recent-call-btn btn-edit';
                 editBtn.title = 'Edit';
                 editBtn.innerHTML = SVG_ICONS.edit;
@@ -7363,6 +7480,7 @@ html.light-theme .vu-meter-label svg {
 
                 // Delete button
                 const delBtn = document.createElement('button');
+                delBtn.type = 'button';
                 delBtn.className = 'recent-call-btn btn-del';
                 delBtn.title = 'Delete';
                 delBtn.innerHTML = SVG_ICONS.trash;
@@ -7378,6 +7496,37 @@ html.light-theme .vu-meter-label svg {
                 card.appendChild(right);
                 listEl.appendChild(card);
             });
+        }
+
+        moveContact(id, direction) {
+            let contacts = [...this.getContacts()];
+            const idx = contacts.findIndex(c => c.id === id);
+            if (idx === -1) return;
+
+            const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+            if (targetIdx < 0 || targetIdx >= contacts.length) return;
+
+            const temp = contacts[idx];
+            contacts[idx] = contacts[targetIdx];
+            contacts[targetIdx] = temp;
+
+            this.saveContacts(contacts);
+            this.renderFavorites();
+            this.renderContacts();
+            this.renderLine2Contacts();
+        }
+
+        reorderContactByIndex(fromIndex, toIndex) {
+            let contacts = [...this.getContacts()];
+            if (fromIndex < 0 || fromIndex >= contacts.length || toIndex < 0 || toIndex >= contacts.length || fromIndex === toIndex) return;
+
+            const [moved] = contacts.splice(fromIndex, 1);
+            contacts.splice(toIndex, 0, moved);
+
+            this.saveContacts(contacts);
+            this.renderFavorites();
+            this.renderContacts();
+            this.renderLine2Contacts();
         }
 
         openContactModal(contact) {
@@ -7475,25 +7624,39 @@ html.light-theme .vu-meter-label svg {
             if (!number) return;
             const numStr = String(number);
             let contacts = this.getContacts();
-            const contact = contacts.find(c => c.number === numStr);
+            const idx = contacts.findIndex(c => c.number === numStr);
+            if (idx === -1) return;
 
-            // Update contact record
-            if (contact) {
-                contact.isFavorite = !contact.isFavorite;
-                this.saveContacts(contacts);
+            const contact = contacts[idx];
+            contact.isFavorite = !contact.isFavorite;
+
+            // When favorited, push directly to the top of the contacts list
+            if (contact.isFavorite) {
+                contacts.splice(idx, 1);
+                contacts.unshift(contact);
+            } else {
+                // If unfavorited, place it below any remaining favorites
+                const firstNonFavIdx = contacts.findIndex((c, i) => i !== idx && !c.isFavorite);
+                if (firstNonFavIdx > 0 && idx < firstNonFavIdx) {
+                    contacts.splice(idx, 1);
+                    contacts.splice(firstNonFavIdx, 0, contact);
+                }
             }
+            this.saveContacts(contacts);
 
             // Update favorites list
             let favs = this.getFavorites();
-            const idx = favs.indexOf(numStr);
-            if (idx >= 0) {
-                favs.splice(idx, 1);
-            } else {
-                favs.push(numStr);
+            const fIdx = favs.indexOf(numStr);
+            if (contact.isFavorite && fIdx === -1) {
+                favs.unshift(numStr);
+            } else if (!contact.isFavorite && fIdx >= 0) {
+                favs.splice(fIdx, 1);
             }
             this.saveFavorites(favs);
             this.renderFavorites();
             this.renderContacts();
+            this.renderLine2Contacts();
+            this.showToast(contact.isFavorite ? (this.currentLang === 'ar' ? 'تمت الإضافة للمفضلة في الأعلى' : 'Added to favorites at the top') : (this.currentLang === 'ar' ? 'تمت الإزالة من المفضلة' : 'Removed from favorites'), 'info');
         }
 
         renderFavorites() {

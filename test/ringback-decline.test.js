@@ -390,3 +390,27 @@ test('7. Blind and Attended Transfer Execution and State Integrity', () => {
 
     core.destroy();
 });
+
+test('8. Contacts Favoriting Pushes to Top and Supports Custom Reordering', () => {
+    // Parity: check moveContact, reorderContactByIndex, draggable and grip handles in uiJs and ejs
+    assert.match(uiJsContent, /moveContact\(id,\s*direction\)/);
+    assert.match(ejsContent, /moveContact\(id,\s*direction\)/);
+    assert.match(uiJsContent, /reorderContactByIndex\(fromIndex,\s*toIndex\)/);
+    assert.match(ejsContent, /reorderContactByIndex\(fromIndex,\s*toIndex\)/);
+
+    // Assert draggable attributes and contact-drag-handle classes
+    assert.match(uiJsContent, /card\.draggable\s*=\s*true/);
+    assert.match(ejsContent, /card\.draggable\s*=\s*true/);
+    assert.match(uiJsContent, /contact-drag-handle/);
+    assert.match(ejsContent, /contact-drag-handle/);
+
+    // Assert CSS rules for drag-over and handles
+    assert.match(cssContent, /\.contact-drag-handle/);
+    assert.match(cssContent, /\.recent-card\.drag-over-top/);
+    assert.match(cssContent, /\.recent-card\.drag-over-bottom/);
+    assert.match(cssContent, /\.recent-call-btn\.btn-reorder/);
+
+    // Assert favorite unshift logic
+    assert.match(uiJsContent, /contacts\.unshift\(contact\);/);
+    assert.match(ejsContent, /contacts\.unshift\(contact\);/);
+});

@@ -1330,6 +1330,43 @@ select.input-text option {
     border-color: var(--border-accent);
 }
 
+.contact-drag-handle {
+    color: var(--text-muted);
+    opacity: 0.4;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    padding: 0 4px 0 0;
+    transition: opacity 0.15s ease;
+    user-select: none;
+}
+.contact-drag-handle:hover,
+.recent-card:hover .contact-drag-handle {
+    opacity: 0.9;
+}
+.recent-card[draggable="true"] {
+    transition: transform 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.recent-card.is-dragging {
+    opacity: 0.35;
+    background: var(--bg-hover) !important;
+}
+.recent-card.drag-over-top {
+    border-top: 2px solid var(--accent-color) !important;
+    transform: translateY(-2px);
+}
+.recent-card.drag-over-bottom {
+    border-bottom: 2px solid var(--accent-color) !important;
+    transform: translateY(2px);
+}
+.recent-call-btn.btn-reorder {
+    padding: 2px;
+    opacity: 0.6;
+}
+.recent-call-btn.btn-reorder:hover:not(:disabled) {
+    opacity: 1;
+    color: var(--accent-color);
+}
 /* ==========================================================================
    TRANSFER MODAL & EXTENSIONS ROSTER
    ========================================================================== */
