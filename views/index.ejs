@@ -2870,11 +2870,11 @@ html.light-theme .vu-meter-label svg {
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
                                 <span class="tool-label"><%= isRtl ? 'سماعة' : 'Speaker' %></span>
                             </button>
-                            <button type="button" class="tool-icon-btn" id="toolBtnDnd" onclick="document.getElementById('dndCheckbox').checked=!document.getElementById('dndCheckbox').checked; document.getElementById('dndCheckbox').dispatchEvent(new Event('change'))" title="<%= isRtl ? 'وضع عدم الإزعاج' : 'Do Not Disturb (DND)' %>">
+                            <button type="button" class="tool-icon-btn" id="toolBtnDnd" onclick="window.softphoneUi.toggleDndButton()" title="<%= isRtl ? 'وضع عدم الإزعاج' : 'Do Not Disturb (DND)' %>">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                                 <span class="tool-label"><%= isRtl ? 'إزعاج' : 'DND' %></span>
                             </button>
-                            <button type="button" class="tool-icon-btn" id="toolBtnAuto" onclick="document.getElementById('autoAnswerCheckbox').checked=!document.getElementById('autoAnswerCheckbox').checked; document.getElementById('autoAnswerCheckbox').dispatchEvent(new Event('change'))" title="<%= isRtl ? 'الرد التلقائي' : 'Auto Answer' %>">
+                            <button type="button" class="tool-icon-btn" id="toolBtnAuto" onclick="window.softphoneUi.toggleAutoAnswerButton()" title="<%= isRtl ? 'الرد التلقائي' : 'Auto Answer' %>">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                                 <span class="tool-label"><%= isRtl ? 'تلقائي' : 'Auto' %></span>
                             </button>
@@ -5972,6 +5972,7 @@ html.light-theme .vu-meter-label svg {
         applyPolicyToUi(policy) {
             if (!policy) return;
             const isAr = this.currentLang === 'ar';
+            const preset = this.getSelectedPreset();
 
             // 1. Auto Answer policy enforcement
             const autoBox = this.dom.autoAnswerCheckbox;
@@ -5987,6 +5988,10 @@ html.light-theme .vu-meter-label svg {
                     autoBtn.classList.remove('policy-disabled');
                     autoBtn.title = isAr ? 'الرد التلقائي مقفل ومفعل إجبارياً بواسطة الإدارة' : 'Auto Answer is permanently locked ON by Administrator';
                 }
+                if (preset) {
+                    preset.autoAnswer = true;
+                    this.updatePresetInStorage(preset);
+                }
             } else if (policy.auto_answer === 'force_off') {
                 this.core.isAutoAnswer = false;
                 if (autoBox) {
@@ -5997,6 +6002,10 @@ html.light-theme .vu-meter-label svg {
                     autoBtn.classList.remove('active-auto');
                     autoBtn.classList.add('policy-locked', 'policy-disabled');
                     autoBtn.title = isAr ? 'الرد التلقائي معطل وممنوع بواسطة الإدارة' : 'Auto Answer is prohibited by Administrator';
+                }
+                if (preset) {
+                    preset.autoAnswer = false;
+                    this.updatePresetInStorage(preset);
                 }
             } else {
                 if (autoBox) autoBox.disabled = false;
@@ -6020,6 +6029,10 @@ html.light-theme .vu-meter-label svg {
                     dndBtn.classList.remove('policy-disabled');
                     dndBtn.title = isAr ? 'عدم الإزعاج مفعل ومقفل إجبارياً بواسطة الإدارة' : 'DND is permanently locked ON by Administrator';
                 }
+                if (preset) {
+                    preset.dnd = true;
+                    this.updatePresetInStorage(preset);
+                }
             } else if (policy.dnd === 'force_off') {
                 this.core.isDnd = false;
                 if (dndBox) {
@@ -6031,6 +6044,10 @@ html.light-theme .vu-meter-label svg {
                     dndBtn.classList.add('policy-locked', 'policy-disabled');
                     dndBtn.title = isAr ? 'عدم الإزعاج معطل وممنوع بواسطة الإدارة' : 'DND is prohibited by Administrator';
                 }
+                if (preset) {
+                    preset.dnd = false;
+                    this.updatePresetInStorage(preset);
+                }
             } else {
                 if (dndBox) dndBox.disabled = false;
                 if (dndBtn) {
@@ -6040,6 +6057,51 @@ html.light-theme .vu-meter-label svg {
             }
         }
 
+        updatePresetInStorage(preset) {
+            if (!preset || !preset.id) return;
+            let presets = this.getPresets();
+            const idx = presets.findIndex(p => p.id === preset.id);
+            if (idx >= 0) {
+                presets[idx] = { ...presets[idx], ...preset };
+                this.savePresets(presets);
+            }
+        }
+
+        toggleAutoAnswerButton() {
+            const preset = this.getSelectedPreset();
+            const extNum = preset ? String(preset.extension) : '';
+            const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
+            if (policy && policy.auto_answer !== 'user_choice') {
+                const isAr = this.currentLang === 'ar';
+                const msg = policy.auto_answer === 'force_on'
+                    ? (isAr ? 'الرد التلقائي مقفل ومفعل إجبارياً بواسطة الإدارة' : 'Auto Answer is permanently locked ON by Administrator')
+                    : (isAr ? 'الرد التلقائي معطل وممنوع بواسطة الإدارة' : 'Auto Answer is prohibited by Administrator');
+                this.showToast(msg, 'warning');
+                return;
+            }
+            if (this.dom.autoAnswerCheckbox) {
+                this.dom.autoAnswerCheckbox.checked = !this.dom.autoAnswerCheckbox.checked;
+                this.dom.autoAnswerCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
+
+        toggleDndButton() {
+            const preset = this.getSelectedPreset();
+            const extNum = preset ? String(preset.extension) : '';
+            const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
+            if (policy && policy.dnd !== 'user_choice') {
+                const isAr = this.currentLang === 'ar';
+                const msg = policy.dnd === 'force_on'
+                    ? (isAr ? 'عدم الإزعاج مفعل ومقفل إجبارياً بواسطة الإدارة' : 'DND is permanently locked ON by Administrator')
+                    : (isAr ? 'عدم الإزعاج معطل وممنوع بواسطة الإدارة' : 'DND is prohibited by Administrator');
+                this.showToast(msg, 'warning');
+                return;
+            }
+            if (this.dom.dndCheckbox) {
+                this.dom.dndCheckbox.checked = !this.dom.dndCheckbox.checked;
+                this.dom.dndCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
         onModalExtensionSelected() {
             const select = document.getElementById('presetExtSelect');
             if (!select || !select.value) return;
