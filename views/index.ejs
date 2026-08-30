@@ -7418,35 +7418,6 @@ html.light-theme .vu-meter-label svg {
                 right.className = 'recent-right';
                 right.style.cssText = 'display:flex;align-items:center;gap:3px;';
 
-                // Move Up and Down buttons
-                if (!filterLower) {
-                    const upBtn = document.createElement('button');
-                    upBtn.type = 'button';
-                    upBtn.className = 'recent-call-btn btn-reorder';
-                    upBtn.title = this.currentLang === 'ar' ? 'تحريك لأعلى' : 'Move Up';
-                    upBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>';
-                    upBtn.disabled = index === 0;
-                    upBtn.style.opacity = index === 0 ? '0.2' : '0.7';
-                    upBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.moveContact(contact.id, 'up');
-                    });
-
-                    const downBtn = document.createElement('button');
-                    downBtn.type = 'button';
-                    downBtn.className = 'recent-call-btn btn-reorder';
-                    downBtn.title = this.currentLang === 'ar' ? 'تحريك لأسفل' : 'Move Down';
-                    downBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
-                    downBtn.disabled = index === filtered.length - 1;
-                    downBtn.style.opacity = index === filtered.length - 1 ? '0.2' : '0.7';
-                    downBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.moveContact(contact.id, 'down');
-                    });
-
-                    right.appendChild(upBtn);
-                    right.appendChild(downBtn);
-                }
 
                 // Favorite toggle
                 const favBtn = document.createElement('button');
