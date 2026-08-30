@@ -1260,15 +1260,20 @@
             const rawHost = (this.activePreset && this.activePreset.sipDomain) ? this.activePreset.sipDomain : (window.location.hostname || '127.0.0.1');
             const host = rawHost.split(':')[0];
             const targetUri = `sip:${target}@${host}`;
+            const ext = (this.activePreset && this.activePreset.extension) ? this.activePreset.extension : '150';
+            const contactHeader = (this.ua && this.ua.contact) ? this.ua.contact.toString() : `<sip:${ext}@${host}>`;
 
             try {
                 callEntry.session.refer(targetUri, {
+                    extraHeaders: [
+                        `Contact: ${contactHeader}`
+                    ],
                     eventHandlers: {
                         requestSucceeded: () => {
                             this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
                         },
                         requestFailed: (e) => {
-                            console.warn('[SokratCore] SIP REFER rejected, falling back to Asterisk DTMF transfer (##)...');
+                            console.warn('[SokratCore] SIP REFER rejected, falling back to Asterisk DTMF transfer (##)...', e);
                             try {
                                 this.sendDtmfSequence(callEntry, `##${target}`);
                                 this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
@@ -1317,9 +1322,17 @@
 
             if (origEntry && consultEntry && origEntry.session && consultEntry.session) {
                 try {
+                    const rawHost = (this.activePreset && this.activePreset.sipDomain) ? this.activePreset.sipDomain : (window.location.hostname || '127.0.0.1');
+                    const host = rawHost.split(':')[0];
+                    const ext = (this.activePreset && this.activePreset.extension) ? this.activePreset.extension : '150';
+                    const contactHeader = (this.ua && this.ua.contact) ? this.ua.contact.toString() : `<sip:${ext}@${host}>`;
                     const targetUri = consultEntry.session.remote_identity.uri.toString();
+
                     origEntry.session.refer(targetUri, {
                         replaces: consultEntry.session,
+                        extraHeaders: [
+                            `Contact: ${contactHeader}`
+                        ],
                         eventHandlers: {
                             requestSucceeded: () => {
                                 this.emit('toast', { type: 'success', message: 'Attended transfer completed' });
