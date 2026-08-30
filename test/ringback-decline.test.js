@@ -108,10 +108,9 @@ test('1. Core, UI, CSS & EJS Mirroring Parity for Ringback, Fonts and Call Butto
     assert.match(coreJsContent, /this\.remoteAudioEl\.srcObject\.getTracks\(\)\.forEach\(t\s*=>\s*\{\s*try\s*\{\s*t\.stop\(\);\s*\}\s*catch/);
     assert.match(ejsContent, /this\.remoteAudioEl\.srcObject\.getTracks\(\)\.forEach\(t\s*=>\s*\{\s*try\s*\{\s*t\.stop\(\);\s*\}\s*catch/);
 
-    // Assert activeCalls check in makeCall
-    assert.match(coreJsContent, /if\s*\(this\.activeCalls\.size\s*>\s*0\)\s*\{\s*throw new Error\('A call is already active on this line\.'\);\s*\}/);
-    assert.match(ejsContent, /if\s*\(this\.activeCalls\.size\s*>\s*0\)\s*\{\s*throw new Error\('A call is already active on this line\.'\);\s*\}/);
-
+    // Assert activeCalls check in makeCall (with consultCallPending allowance)
+    assert.match(coreJsContent, /if\s*\(this\.activeCalls\.size\s*>\s*0\s*&&\s*!this\.consultCallPending\)\s*\{\s*throw new Error\('A call is already active on this line\.'\);\s*\}/);
+    assert.match(ejsContent, /if\s*\(this\.activeCalls\.size\s*>\s*0\s*&&\s*!this\.consultCallPending\)\s*\{\s*throw new Error\('A call is already active on this line\.'\);\s*\}/);
     // Assert disabled styles for .call-pill-btn in CSS and EJS
     assert.match(cssContent, /\.call-pill-btn:disabled,\s*\.call-pill-btn\[disabled\]/);
     assert.match(ejsContent, /\.call-pill-btn:disabled,\s*\.call-pill-btn\[disabled\]/);
@@ -339,6 +338,55 @@ test('6. Microphone and Speaker Volume Controls over VU Meters', () => {
     // Parity: check slider CSS classes
     assert.match(cssContent, /\.vu-volume-slider/);
     assert.match(ejsContent, /\.vu-volume-slider/);
+
+    core.destroy();
+});
+
+test('7. Blind and Attended Transfer Execution and State Integrity', () => {
+    const core = createTestCore();
+    core.ua = { isConnected: () => true, call: () => {} };
+    core.activePreset = { sipDomain: '127.0.0.1' };
+
+    let referTarget = null;
+    let referOptions = null;
+    let holdCalled = false;
+
+    const mockSession = {
+        refer: (target, opts) => {
+            referTarget = target;
+            referOptions = opts;
+        },
+        hold: () => { holdCalled = true; },
+        unhold: () => { holdCalled = false; },
+        terminate: () => {}
+    };
+
+    const callEntry = {
+        id: 'call_transfer_orig',
+        direction: 'inbound',
+        target: '101',
+        status: 'active',
+        session: mockSession,
+        isHeld: false
+    };
+    core.activeCalls.set(callEntry.id, callEntry);
+
+    // Blind transfer test
+    core.blindTransfer('call_transfer_orig', '102');
+    assert.equal(referTarget, 'sip:102@127.0.0.1');
+    assert.ok(referOptions && referOptions.eventHandlers, 'refer must include event handlers');
+
+    // Attended transfer test — consultation call must NOT throw active call error
+    assert.doesNotThrow(() => {
+        core.attendedTransfer('call_transfer_orig', '103');
+    }, 'attendedTransfer must initiate consultation call without throwing active calls guard');
+    assert.equal(holdCalled, true, 'original call must be held during consultation');
+    assert.ok(core.consultCallPending, 'consultCallPending must be set');
+
+    // Cancel attended transfer
+    core.cancelAttendedTransfer();
+    assert.equal(core.consultCallPending, null, 'consultCallPending must be cleared on cancel');
+    assert.equal(callEntry.isHeld, false, 'original call must be unheld on cancel');
 
     core.destroy();
 });

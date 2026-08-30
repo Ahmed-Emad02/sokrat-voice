@@ -1094,7 +1094,7 @@
             if (!this.ua || !this.ua.isConnected()) {
                 throw new Error('Softphone is offline. Connect to extension first.');
             }
-            if (this.activeCalls.size > 0) {
+            if (this.activeCalls.size > 0 && !this.consultCallPending) {
                 throw new Error('A call is already active on this line.');
             }
             const cleanTarget = String(targetNumber).trim();
@@ -1247,20 +1247,22 @@
             const host = (this.activePreset && this.activePreset.sipDomain) ? this.activePreset.sipDomain : (window.location.hostname || '127.0.0.1');
             const targetUri = `sip:${target}@${host}`;
 
-            callEntry.session.refer(targetUri, {
-                eventHandlers: {
-                    requestSucceeded: () => {
-                        this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
-                        setTimeout(() => {
-                            try { callEntry.session.terminate(); } catch (_) {}
-                        }, 800);
-                    },
-                    requestFailed: (e) => {
-                        const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
-                        this.emit('toast', { type: 'error', message: `Transfer failed: ${cause}` });
+            try {
+                callEntry.session.refer(targetUri, {
+                    eventHandlers: {
+                        requestSucceeded: () => {
+                            this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
+                        },
+                        requestFailed: (e) => {
+                            const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
+                            this.emit('toast', { type: 'error', message: `Transfer failed: ${cause}` });
+                        }
                     }
-                }
-            });
+                });
+            } catch (err) {
+                this.emit('toast', { type: 'error', message: `Transfer error: ${err.message}` });
+                throw err;
+            }
         }
 
         // --- ATTENDED TRANSFER ---
@@ -1272,9 +1274,11 @@
 
             // Hold current call before consultation
             if (!callEntry.isHeld) {
-                callEntry.session.hold();
-                callEntry.isHeld = true;
-                this.emit('callUpdated', callEntry);
+                try {
+                    callEntry.session.hold();
+                    callEntry.isHeld = true;
+                    this.emit('callUpdated', callEntry);
+                } catch (_) {}
             }
             this.consultCallPending = { originalCallId: callId, target };
             this.makeCall(target);
@@ -1293,13 +1297,10 @@
                         eventHandlers: {
                             requestSucceeded: () => {
                                 this.emit('toast', { type: 'success', message: 'Attended transfer completed' });
-                                setTimeout(() => {
-                                    try { origEntry.session.terminate(); } catch (_) {}
-                                    try { consultEntry.session.terminate(); } catch (_) {}
-                                }, 800);
                             },
                             requestFailed: (e) => {
-                                this.emit('toast', { type: 'error', message: `Attended transfer failed: ${e.cause || 'Rejected'}` });
+                                const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
+                                this.emit('toast', { type: 'error', message: `Attended transfer failed: ${cause}` });
                             }
                         }
                     });
