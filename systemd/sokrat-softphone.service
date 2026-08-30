@@ -1,0 +1,31 @@
+[Unit]
+Description=Sokrat Standalone WebRTC Softphone Daemon
+After=network.target asterisk.service
+Wants=asterisk.service
+
+[Service]
+Type=simple
+User=sokrat-softphone
+Group=sokrat-softphone
+WorkingDirectory=/opt/sokrat-softphone
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+
+# Kernel Hardening & Sandbox
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=8090
+Environment=HOST=127.0.0.1
+
+[Install]
+WantedBy=multi-user.target

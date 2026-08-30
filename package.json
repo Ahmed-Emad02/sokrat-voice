@@ -1,0 +1,24 @@
+{
+  "name": "sokrat-softphone",
+  "version": "2.0.0",
+  "description": "Sokrat Standalone WebRTC Softphone for Asterisk 18 / Issabel PBX",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-force-exit"
+  },
+  "keywords": [
+    "webrtc",
+    "softphone",
+    "asterisk",
+    "jssip",
+    "pjsip",
+    "issabel"
+  ],
+  "author": "Sokrat VoIP",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^5.0.2",
+    "express": "^4.22.2"
+  }
+}
