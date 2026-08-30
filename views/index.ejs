@@ -4294,13 +4294,27 @@ html.light-theme .vu-meter-label svg {
             this.playDtmfSidetone(digit);
         }
 
+        sendDtmfSequence(callEntry, sequence) {
+            if (!callEntry || !callEntry.session) return;
+            const digits = String(sequence).split('');
+            digits.forEach((d, idx) => {
+                setTimeout(() => {
+                    try {
+                        callEntry.session.sendDTMF(d);
+                        this.playDtmfSidetone(d);
+                    } catch (_) {}
+                }, idx * 160);
+            });
+        }
+
         blindTransfer(callId, targetNumber) {
             const callEntry = this.activeCalls.get(callId);
             if (!callEntry || !callEntry.session) throw new Error('No active call to transfer.');
             const target = String(targetNumber).trim().replace(/[^\d+*#]/g, '');
             if (!target) throw new Error('Target extension is required.');
 
-            const host = (this.activePreset && this.activePreset.sipDomain) ? this.activePreset.sipDomain : (window.location.hostname || '127.0.0.1');
+            const rawHost = (this.activePreset && this.activePreset.sipDomain) ? this.activePreset.sipDomain : (window.location.hostname || '127.0.0.1');
+            const host = rawHost.split(':')[0];
             const targetUri = `sip:${target}@${host}`;
 
             try {
@@ -4310,17 +4324,28 @@ html.light-theme .vu-meter-label svg {
                             this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
                         },
                         requestFailed: (e) => {
-                            const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
-                            this.emit('toast', { type: 'error', message: `Transfer failed: ${cause}` });
+                            console.warn('[SokratCore] SIP REFER rejected, falling back to Asterisk DTMF transfer (##)...');
+                            try {
+                                this.sendDtmfSequence(callEntry, `##${target}`);
+                                this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
+                            } catch (dtmfErr) {
+                                const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
+                                this.emit('toast', { type: 'error', message: `Transfer failed: ${cause}` });
+                            }
                         }
                     }
                 });
             } catch (err) {
-                this.emit('toast', { type: 'error', message: `Transfer error: ${err.message}` });
-                throw err;
+                // Direct DTMF fallback if refer() throws
+                try {
+                    this.sendDtmfSequence(callEntry, `##${target}`);
+                    this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
+                } catch (dtmfErr) {
+                    this.emit('toast', { type: 'error', message: `Transfer error: ${err.message}` });
+                    throw err;
+                }
             }
         }
-
         // --- ATTENDED TRANSFER ---
         attendedTransfer(callId, targetNumber) {
             const callEntry = this.activeCalls.get(callId);
