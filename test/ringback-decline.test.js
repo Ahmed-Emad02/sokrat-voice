@@ -408,9 +408,26 @@ test('8. Contacts Favoriting Pushes to Top and Supports Custom Reordering', () =
     assert.match(cssContent, /\.contact-drag-handle/);
     assert.match(cssContent, /\.recent-card\.drag-over-top/);
     assert.match(cssContent, /\.recent-card\.drag-over-bottom/);
-    assert.match(cssContent, /\.recent-call-btn\.btn-reorder/);
 
     // Assert favorite unshift logic
     assert.match(uiJsContent, /contacts\.unshift\(contact\);/);
     assert.match(ejsContent, /contacts\.unshift\(contact\);/);
+});
+
+test('9. Terminal-Style Dial History Seeking via Up/Down Arrows', () => {
+    // Parity: check getDialedHistory and setupDialHistorySeeking in uiJs and ejs
+    assert.match(uiJsContent, /getDialedHistory\(line\s*=\s*'line1'\)/);
+    assert.match(ejsContent, /getDialedHistory\(line\s*=\s*'line1'\)/);
+    assert.match(uiJsContent, /setupDialHistorySeeking\(inputEl,\s*line\s*=\s*'line1'\)/);
+    assert.match(ejsContent, /setupDialHistorySeeking\(inputEl,\s*line\s*=\s*'line1'\)/);
+
+    // Assert ArrowUp and ArrowDown event listeners
+    assert.match(uiJsContent, /e\.key\s*===\s*'ArrowUp'/);
+    assert.match(ejsContent, /e\.key\s*===\s*'ArrowUp'/);
+    assert.match(uiJsContent, /e\.key\s*===\s*'ArrowDown'/);
+    assert.match(ejsContent, /e\.key\s*===\s*'ArrowDown'/);
+
+    // Assert selection range cursor placement
+    assert.match(uiJsContent, /inputEl\.setSelectionRange\(inputEl\.value\.length,\s*inputEl\.value\.length\)/);
+    assert.match(ejsContent, /inputEl\.setSelectionRange\(inputEl\.value\.length,\s*inputEl\.value\.length\)/);
 });

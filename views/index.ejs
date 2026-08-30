@@ -5440,7 +5440,7 @@ html.light-theme .vu-meter-label svg {
                     if (input) input.value = '';
                 };
             }
-
+            this.setupDialHistorySeeking(document.getElementById('line2DialInput'), 'line2');
             // Setup Line 2 Core with explicit line2 lockKey to prevent collision
             if (!this.line2Core) {
                 this.line2Core = new SokratSoftphoneCore({ 
@@ -6761,6 +6761,63 @@ html.light-theme .vu-meter-label svg {
             this.showToast('Call history cleared', 'info');
         }
 
+        // --- TERMINAL-STYLE DIAL HISTORY SEEKING (UP/DOWN ARROWS) ---
+        getDialedHistory(line = 'line1') {
+            const allLogs = this.getCallLogs();
+            const filtered = allLogs.filter(l => (!l.line || l.line === line) && (l.direction === 'outgoing' || l.direction === 'outbound' || l.target));
+            const seen = new Set();
+            const history = [];
+            for (const log of filtered) {
+                const target = String(log.target || log.number || '').trim();
+                if (target && target !== 'Unknown' && !seen.has(target)) {
+                    seen.add(target);
+                    history.push(target);
+                }
+            }
+            return history;
+        }
+
+        setupDialHistorySeeking(inputEl, line = 'line1') {
+            if (!inputEl || inputEl._hasDialHistorySeeking) return;
+            inputEl._hasDialHistorySeeking = true;
+            let historyIndex = -1;
+            let draft = '';
+
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    const history = this.getDialedHistory(line);
+                    if (history.length === 0) return;
+                    e.preventDefault();
+                    if (historyIndex === -1) {
+                        draft = inputEl.value;
+                    }
+                    if (historyIndex < history.length - 1) {
+                        historyIndex++;
+                        inputEl.value = history[historyIndex];
+                        setTimeout(() => inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length), 0);
+                    }
+                } else if (e.key === 'ArrowDown') {
+                    const history = this.getDialedHistory(line);
+                    if (historyIndex === -1) return;
+                    e.preventDefault();
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        inputEl.value = history[historyIndex];
+                        setTimeout(() => inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length), 0);
+                    } else if (historyIndex === 0) {
+                        historyIndex = -1;
+                        inputEl.value = draft;
+                        setTimeout(() => inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length), 0);
+                    }
+                } else if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt' && e.key !== 'Meta' && e.key !== 'Enter') {
+                    historyIndex = -1;
+                }
+            });
+
+            inputEl.addEventListener('blur', () => {
+                historyIndex = -1;
+            });
+        }
         loadCallLogs() {
             const listEl = this.dom.callHistoryList;
             if (!listEl) return;
@@ -6937,6 +6994,7 @@ html.light-theme .vu-meter-label svg {
             });
 
             this.dom.callBtn.addEventListener('click', () => this.handleCallAction());
+            this.setupDialHistorySeeking(this.dom.dialInput, 'line1');
             this.dom.dialInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
