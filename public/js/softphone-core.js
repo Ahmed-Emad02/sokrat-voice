@@ -1263,6 +1263,14 @@
             const ext = (this.activePreset && this.activePreset.extension) ? this.activePreset.extension : '150';
             const contactHeader = (this.ua && this.ua.contact) ? this.ua.contact.toString() : `<sip:${ext}@${host}>`;
 
+            const isAr = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'ar');
+            const transferredMsg = isAr ? `تم التحويل إلى ${target}` : `Transferred to ${target}`;
+
+            const cleanupAndNotify = () => {
+                this.emit('toast', { type: 'success', message: transferredMsg });
+                this.handleCallEnd(callEntry, 'transferred');
+            };
+
             try {
                 callEntry.session.refer(targetUri, {
                     extraHeaders: [
@@ -1270,13 +1278,13 @@
                     ],
                     eventHandlers: {
                         requestSucceeded: () => {
-                            this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
+                            cleanupAndNotify();
                         },
                         requestFailed: (e) => {
                             console.warn('[SokratCore] SIP REFER rejected, falling back to Asterisk DTMF transfer (##)...', e);
                             try {
                                 this.sendDtmfSequence(callEntry, `##${target}`);
-                                this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
+                                cleanupAndNotify();
                             } catch (dtmfErr) {
                                 const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
                                 this.emit('toast', { type: 'error', message: `Transfer failed: ${cause}` });
@@ -1288,7 +1296,7 @@
                 // Direct DTMF fallback if refer() throws
                 try {
                     this.sendDtmfSequence(callEntry, `##${target}`);
-                    this.emit('toast', { type: 'success', message: `Transferring call to ${target}...` });
+                    cleanupAndNotify();
                 } catch (dtmfErr) {
                     this.emit('toast', { type: 'error', message: `Transfer error: ${err.message}` });
                     throw err;
@@ -1319,6 +1327,15 @@
             if (!this.consultCallPending) return;
             const origEntry = this.activeCalls.get(this.consultCallPending.originalCallId);
             const consultEntry = Array.from(this.activeCalls.values()).find(c => c.id !== this.consultCallPending.originalCallId);
+            const target = this.consultCallPending.target || 'target';
+            const isAr = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'ar');
+            const transferredMsg = isAr ? `تم التحويل إلى ${target}` : `Transferred to ${target}`;
+
+            const cleanupAndNotify = () => {
+                this.emit('toast', { type: 'success', message: transferredMsg });
+                if (origEntry) this.handleCallEnd(origEntry, 'transferred');
+                if (consultEntry) this.handleCallEnd(consultEntry, 'transferred');
+            };
 
             if (origEntry && consultEntry && origEntry.session && consultEntry.session) {
                 try {
@@ -1335,7 +1352,7 @@
                         ],
                         eventHandlers: {
                             requestSucceeded: () => {
-                                this.emit('toast', { type: 'success', message: 'Attended transfer completed' });
+                                cleanupAndNotify();
                             },
                             requestFailed: (e) => {
                                 const cause = e ? (e.cause || 'Rejected') : 'Transfer failed';
