@@ -214,6 +214,34 @@ app.get(['/api/call-status/:callId', '/phone/api/call-status/:callId'], async (r
     }
 });
 
+// --- EXTENSION POLICY API ---
+app.get(['/api/extension-policy/:ext', '/phone/api/extension-policy/:ext'], async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    const ext = String(req.params.ext || '').trim();
+    if (!ext) return res.json({ success: true, policy: { extension: '', auto_answer: 'user_choice', dnd: 'user_choice' } });
+
+    let policy = { extension: ext, auto_answer: 'user_choice', dnd: 'user_choice' };
+    if (mysql) {
+        try {
+            const conn = await mysql.createConnection({
+                host: process.env.DB_HOST || '127.0.0.1',
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASS || 'admin',
+                database: process.env.ASTERISK_DB || 'asterisk'
+            });
+            const [rows] = await conn.execute(
+                'SELECT extension, auto_answer, dnd FROM extension_policies WHERE extension = ?',
+                [ext]
+            );
+            await conn.end();
+            if (rows && rows.length > 0) {
+                policy = rows[0];
+            }
+        } catch (_) {}
+    }
+    res.json({ success: true, policy });
+});
+
 // Main Standalone Softphone Interface with Server-Side Pre-rendered Extensions
 app.get(['/', '/phone'], async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

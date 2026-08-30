@@ -1341,12 +1341,103 @@
             const secret = preset.secret || this.sessionSecrets.get(preset.id) || '';
             if (this.dom.passwordInput) this.dom.passwordInput.value = secret;
 
+            // Query and enforce Central Administrator Policy for this extension
+            if (preset.extension) {
+                this.fetchAndApplyExtensionPolicy(preset.extension);
+            }
+
             if (preset.autoConnect && secret && this.core.regState === 'DISCONNECTED') {
                 setTimeout(() => {
                     if (this.core.regState === 'DISCONNECTED' && this.dom.connectBtn) {
                         this.dom.connectBtn.click();
                     }
                 }, 100);
+            }
+        }
+
+        async fetchAndApplyExtensionPolicy(extension) {
+            const extNum = String(extension || '').trim().replace(/^ext_/, '');
+            if (!extNum) return;
+
+            try {
+                const res = await fetch(`/api/extension-policy/${extNum}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const policy = data.policy || { auto_answer: 'user_choice', dnd: 'user_choice' };
+                this.extensionPolicies = this.extensionPolicies || new Map();
+                this.extensionPolicies.set(extNum, policy);
+                this.applyPolicyToUi(policy);
+            } catch (_) {}
+        }
+
+        applyPolicyToUi(policy) {
+            if (!policy) return;
+            const isAr = this.currentLang === 'ar';
+
+            // 1. Auto Answer policy enforcement
+            const autoBox = this.dom.autoAnswerCheckbox;
+            const autoBtn = this.dom.toolBtnAuto;
+            if (policy.auto_answer === 'force_on') {
+                this.core.isAutoAnswer = true;
+                if (autoBox) {
+                    autoBox.checked = true;
+                    autoBox.disabled = true;
+                }
+                if (autoBtn) {
+                    autoBtn.classList.add('active-auto', 'policy-locked');
+                    autoBtn.classList.remove('policy-disabled');
+                    autoBtn.title = isAr ? 'الرد التلقائي مقفل ومفعل إجبارياً بواسطة الإدارة' : 'Auto Answer is permanently locked ON by Administrator';
+                }
+            } else if (policy.auto_answer === 'force_off') {
+                this.core.isAutoAnswer = false;
+                if (autoBox) {
+                    autoBox.checked = false;
+                    autoBox.disabled = true;
+                }
+                if (autoBtn) {
+                    autoBtn.classList.remove('active-auto');
+                    autoBtn.classList.add('policy-locked', 'policy-disabled');
+                    autoBtn.title = isAr ? 'الرد التلقائي معطل وممنوع بواسطة الإدارة' : 'Auto Answer is prohibited by Administrator';
+                }
+            } else {
+                if (autoBox) autoBox.disabled = false;
+                if (autoBtn) {
+                    autoBtn.classList.remove('policy-locked', 'policy-disabled');
+                    autoBtn.title = isAr ? 'الرد التلقائي' : 'Auto Answer';
+                }
+            }
+
+            // 2. DND policy enforcement
+            const dndBox = this.dom.dndCheckbox;
+            const dndBtn = this.dom.toolBtnDnd;
+            if (policy.dnd === 'force_on') {
+                this.core.isDnd = true;
+                if (dndBox) {
+                    dndBox.checked = true;
+                    dndBox.disabled = true;
+                }
+                if (dndBtn) {
+                    dndBtn.classList.add('active-dnd', 'policy-locked');
+                    dndBtn.classList.remove('policy-disabled');
+                    dndBtn.title = isAr ? 'عدم الإزعاج مفعل ومقفل إجبارياً بواسطة الإدارة' : 'DND is permanently locked ON by Administrator';
+                }
+            } else if (policy.dnd === 'force_off') {
+                this.core.isDnd = false;
+                if (dndBox) {
+                    dndBox.checked = false;
+                    dndBox.disabled = true;
+                }
+                if (dndBtn) {
+                    dndBtn.classList.remove('active-dnd');
+                    dndBtn.classList.add('policy-locked', 'policy-disabled');
+                    dndBtn.title = isAr ? 'عدم الإزعاج معطل وممنوع بواسطة الإدارة' : 'DND is prohibited by Administrator';
+                }
+            } else {
+                if (dndBox) dndBox.disabled = false;
+                if (dndBtn) {
+                    dndBtn.classList.remove('policy-locked', 'policy-disabled');
+                    dndBtn.title = isAr ? 'عدم الإزعاج' : 'Do Not Disturb';
+                }
             }
         }
 
@@ -2442,9 +2533,16 @@
                 });
             });
 
-            // Preferences
+            // Preferences with Policy Lock Interceptors
             this.dom.dndCheckbox.addEventListener('change', () => {
                 const preset = this.getSelectedPreset();
+                const extNum = preset ? String(preset.extension) : '';
+                const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
+                if (policy && policy.dnd !== 'user_choice') {
+                    this.dom.dndCheckbox.checked = policy.dnd === 'force_on';
+                    this.showToast(policy.dnd === 'force_on' ? 'DND is locked ON by Administrator' : 'DND is prohibited by Administrator', 'warning');
+                    return;
+                }
                 this.core.isDnd = this.dom.dndCheckbox.checked;
                 if (this.dom.toolBtnDnd) this.dom.toolBtnDnd.classList.toggle('active-dnd', this.core.isDnd);
                 if (preset) {
@@ -2459,6 +2557,13 @@
 
             this.dom.autoAnswerCheckbox.addEventListener('change', () => {
                 const preset = this.getSelectedPreset();
+                const extNum = preset ? String(preset.extension) : '';
+                const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
+                if (policy && policy.auto_answer !== 'user_choice') {
+                    this.dom.autoAnswerCheckbox.checked = policy.auto_answer === 'force_on';
+                    this.showToast(policy.auto_answer === 'force_on' ? 'Auto Answer is locked ON by Administrator' : 'Auto Answer is prohibited by Administrator', 'warning');
+                    return;
+                }
                 this.core.isAutoAnswer = this.dom.autoAnswerCheckbox.checked;
                 if (this.dom.toolBtnAuto) this.dom.toolBtnAuto.classList.toggle('active-auto', this.core.isAutoAnswer);
                 if (preset) {
@@ -2470,7 +2575,6 @@
                 }
                 this.showToast(this.core.isAutoAnswer ? 'Auto Answer Enabled' : 'Auto Answer Disabled', this.core.isAutoAnswer ? 'success' : 'info');
             });
-
             // Audio Devices
             this.dom.audioInputSelect.addEventListener('change', async () => {
                 const deviceId = this.dom.audioInputSelect.value;

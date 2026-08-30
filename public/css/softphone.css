@@ -1367,6 +1367,23 @@ select.input-text option {
     opacity: 1;
     color: var(--accent-color);
 }
+
+.tool-icon-btn.policy-locked {
+    cursor: not-allowed !important;
+    position: relative;
+}
+.tool-icon-btn.policy-locked::after {
+    content: '🔒';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    font-size: 8px;
+    line-height: 1;
+}
+.tool-icon-btn.policy-disabled {
+    opacity: 0.35 !important;
+    filter: grayscale(1);
+}
 /* ==========================================================================
    TRANSFER MODAL & EXTENSIONS ROSTER
    ========================================================================== */

@@ -431,3 +431,23 @@ test('9. Terminal-Style Dial History Seeking via Up/Down Arrows', () => {
     assert.match(uiJsContent, /inputEl\.setSelectionRange\(inputEl\.value\.length,\s*inputEl\.value\.length\)/);
     assert.match(ejsContent, /inputEl\.setSelectionRange\(inputEl\.value\.length,\s*inputEl\.value\.length\)/);
 });
+
+test('10. Central Administrator Extension Policies and UI Feature Locks (Auto Answer & DND)', () => {
+    // Parity: check fetchAndApplyExtensionPolicy and applyPolicyToUi in uiJs and ejs
+    assert.match(uiJsContent, /fetchAndApplyExtensionPolicy\(extension\)/);
+    assert.match(ejsContent, /fetchAndApplyExtensionPolicy\(extension\)/);
+    assert.match(uiJsContent, /applyPolicyToUi\(policy\)/);
+    assert.match(ejsContent, /applyPolicyToUi\(policy\)/);
+
+    // Assert policy checks for force_on and force_off
+    assert.match(uiJsContent, /policy\.auto_answer\s*===\s*'force_on'/);
+    assert.match(ejsContent, /policy\.auto_answer\s*===\s*'force_on'/);
+    assert.match(uiJsContent, /policy\.dnd\s*===\s*'force_on'/);
+    assert.match(ejsContent, /policy\.dnd\s*===\s*'force_on'/);
+
+    // Assert policy-locked and policy-disabled CSS classes
+    assert.match(cssContent, /\.tool-icon-btn\.policy-locked/);
+    assert.match(cssContent, /\.tool-icon-btn\.policy-disabled/);
+    assert.match(ejsContent, /\.tool-icon-btn\.policy-locked/);
+    assert.match(ejsContent, /\.tool-icon-btn\.policy-disabled/);
+});
