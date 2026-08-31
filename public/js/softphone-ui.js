@@ -643,7 +643,7 @@
                 if (loginView) loginView.style.display = 'none';
                 if (mainAppWindow) mainAppWindow.style.display = 'flex';
                 if (titleEl && this.core.activePreset) {
-                    titleEl.textContent = 'Ext ' + this.core.activePreset.extension + (this.core.activePreset.label ? ' - ' + this.core.activePreset.label : '');
+                    titleEl.textContent = 'Ext ' + this.core.activePreset.extension;
                 }
             } else {
                 if (loginView) loginView.style.display = 'flex';
