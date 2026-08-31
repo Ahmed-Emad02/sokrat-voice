@@ -2634,8 +2634,8 @@ html.light-theme .vu-meter-label svg {
 .app-window {
     width: 100%;
     max-width: 440px;
-    height: 680px !important;
-    min-height: 680px !important;
+    height: 780px !important;
+    min-height: 760px !important;
     max-height: calc(100vh - 24px);
     margin: auto 0;
     background-color: var(--bg-secondary);
@@ -2652,15 +2652,15 @@ html.light-theme .vu-meter-label svg {
 .app-window.is-split-view {
     max-width: 880px !important;
     width: 98vw !important;
-    height: 680px !important;
-    min-height: 680px !important;
+    height: 780px !important;
+    min-height: 760px !important;
 }
 
 .app-body {
     display: flex;
     flex: 1;
     min-height: 0;
-    height: calc(100% - 86px);
+    height: calc(100% - 130px);
     overflow: hidden !important;
 }
 
@@ -6471,7 +6471,8 @@ html.light-theme .login-saved-title {
             if (!extNum) return;
 
             try {
-                const res = await fetch(`/api/extension-policy/${extNum}`);
+                const prefix = window.location.pathname.startsWith('/phone') ? '/phone' : '';
+                const res = await fetch(`${prefix}/api/extension-policy/${extNum}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 const policy = data.policy || { auto_answer: 'user_choice', dnd: 'user_choice' };

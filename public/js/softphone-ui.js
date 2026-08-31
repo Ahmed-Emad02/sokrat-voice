@@ -1434,7 +1434,8 @@
             if (!extNum) return;
 
             try {
-                const res = await fetch(`/api/extension-policy/${extNum}`);
+                const prefix = window.location.pathname.startsWith('/phone') ? '/phone' : '';
+                const res = await fetch(`${prefix}/api/extension-policy/${extNum}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 const policy = data.policy || { auto_answer: 'user_choice', dnd: 'user_choice' };
