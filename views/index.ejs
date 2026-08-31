@@ -306,19 +306,6 @@ body.is-popout .app-window, html.is-popout .app-window {
     white-space: nowrap;
 }
 
-.active-ext-badge {
-    font-size: 9.5px !important;
-    font-weight: 800 !important;
-    color: var(--text-secondary) !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    padding: 1px 5px !important;
-    border-radius: 4px !important;
-    max-width: 75px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    display: inline-block !important;
-}
 
 .app-titlebar-badge {
     padding: 2px 6px;
@@ -3150,7 +3137,6 @@ html.light-theme .login-saved-title {
         <div class="app-titlebar">
             <div class="app-titlebar-title">
                 <span>SOKRAT <span style="color: var(--accent-color);">VOICE</span></span>
-                <span id="activeAccountHeaderTitle" class="active-ext-badge" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; margin-inline-start: 6px;"></span>
             </div>
             <div class="titlebar-actions">
                 <button type="button" class="titlebar-action-pill" onclick="window.softphoneUi.switchAccount()" title="<%= isRtl ? 'تبديل الحساب' : 'Switch Account / Logout' %>">
