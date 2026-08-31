@@ -742,11 +742,22 @@
                     <div class="dialer-col">
 
                         <!-- LCD Dial Display Box -->
-                        <div class="dialer-input-box">
+                        <div class="dialer-input-box" style="position: relative;">
+                            <button type="button" id="line2DialHistoryDropdownBtn" class="dial-history-dropdown-btn" onclick="window.softphoneUi.toggleDialHistoryDropdown('line2')" title="${isAr ? 'الأرقام السابقة' : 'Recent Numbers'}">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
                             <input type="text" id="line2DialInput" placeholder="1-555-0199" class="dialer-input" autocomplete="off">
                             <button type="button" class="clear-input-btn" id="line2BackspaceBtn" title="Backspace">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
                             </button>
+                            <div id="line2DialHistoryDropdown" class="dial-history-dropdown" style="display: none;">
+                                <div class="dial-history-dropdown-header">
+                                    <span>${isAr ? 'الأرقام المطلوبة مؤخراً' : 'RECENTLY DIALED'}</span>
+                                    <button type="button" class="dial-history-close-btn" onclick="window.softphoneUi.closeDialHistoryDropdown('line2')">✕</button>
+                                </div>
+                                <div id="line2DialHistoryDropdownList" class="dial-history-dropdown-list"></div>
+                            </div>
                         </div>
 
                         <!-- 3x4 Boxy Keypad Grid -->
@@ -2431,7 +2442,129 @@
             }
             return history;
         }
+        getDialedHistoryDetails(line = 'line1') {
+            const allLogs = this.getCallLogs();
+            const contacts = this.getContacts();
+            const filtered = allLogs.filter(l => (!l.line || l.line === line) && (l.direction === 'outgoing' || l.direction === 'outbound' || l.target));
+            const seen = new Set();
+            const list = [];
+            for (const log of filtered) {
+                const target = String(log.target || log.number || '').trim();
+                if (target && target !== 'Unknown' && !seen.has(target)) {
+                    seen.add(target);
+                    const contact = contacts.find(c => String(c.number) === target || String(c.extension) === target);
+                    list.push({
+                        number: target,
+                        name: contact ? contact.name : '',
+                        timestamp: log.timestamp,
+                        status: log.status
+                    });
+                }
+            }
+            return list;
+        }
 
+        toggleDialHistoryDropdown(line = 'line1') {
+            const dropdownId = (line === 'line2') ? 'line2DialHistoryDropdown' : 'dialHistoryDropdown';
+            const btnId = (line === 'line2') ? 'line2DialHistoryDropdownBtn' : 'dialHistoryDropdownBtn';
+            const dropdown = document.getElementById(dropdownId);
+            const btn = document.getElementById(btnId);
+            if (!dropdown) return;
+
+            const isVisible = dropdown.style.display !== 'none';
+            if (isVisible) {
+                this.closeDialHistoryDropdown(line);
+            } else {
+                this.renderDialHistoryDropdown(line);
+                dropdown.style.display = 'flex';
+                if (btn) btn.classList.add('active');
+            }
+        }
+
+        closeDialHistoryDropdown(line = null) {
+            const lines = line ? [line] : ['line1', 'line2'];
+            lines.forEach(l => {
+                const dropdownId = (l === 'line2') ? 'line2DialHistoryDropdown' : 'dialHistoryDropdown';
+                const btnId = (l === 'line2') ? 'line2DialHistoryDropdownBtn' : 'dialHistoryDropdownBtn';
+                const dropdown = document.getElementById(dropdownId);
+                const btn = document.getElementById(btnId);
+                if (dropdown) dropdown.style.display = 'none';
+                if (btn) btn.classList.remove('active');
+            });
+        }
+
+        renderDialHistoryDropdown(line = 'line1') {
+            const listId = (line === 'line2') ? 'line2DialHistoryDropdownList' : 'dialHistoryDropdownList';
+            const inputId = (line === 'line2') ? 'line2DialInput' : 'dialInput';
+            const listEl = document.getElementById(listId);
+            const inputEl = document.getElementById(inputId);
+            if (!listEl) return;
+
+            listEl.textContent = '';
+            const historyItems = this.getDialedHistoryDetails(line);
+
+            if (historyItems.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'text-center py-4 text-xs text-muted';
+                empty.textContent = (this.currentLang === 'ar') ? 'لا توجد أرقام سابقة بعد' : 'No previously dialed numbers';
+                listEl.appendChild(empty);
+                return;
+            }
+
+            historyItems.slice(0, 15).forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'dial-history-item';
+                
+                const left = document.createElement('div');
+                left.className = 'dial-history-item-left';
+
+                const icon = document.createElement('div');
+                icon.className = 'dial-history-icon';
+                icon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>';
+
+                const info = document.createElement('div');
+                info.className = 'dial-history-info';
+
+                const num = document.createElement('div');
+                num.className = 'dial-history-num font-mono';
+                num.textContent = item.number;
+
+                info.appendChild(num);
+
+                if (item.name) {
+                    const name = document.createElement('div');
+                    name.className = 'dial-history-name';
+                    name.textContent = item.name;
+                    info.appendChild(name);
+                }
+
+                left.appendChild(icon);
+                left.appendChild(info);
+
+                const time = document.createElement('div');
+                time.className = 'dial-history-time';
+                if (item.timestamp) {
+                    try {
+                        const d = new Date(item.timestamp);
+                        time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } catch (_) {}
+                }
+
+                el.appendChild(left);
+                el.appendChild(time);
+
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (inputEl) {
+                        inputEl.value = item.number;
+                        inputEl.focus();
+                    }
+                    this.closeDialHistoryDropdown(line);
+                });
+
+                listEl.appendChild(el);
+            });
+        }
         setupDialHistorySeeking(inputEl, line = 'line1') {
             if (!inputEl || inputEl._hasDialHistorySeeking) return;
             inputEl._hasDialHistorySeeking = true;
@@ -2664,6 +2797,17 @@
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     this.handleCallAction();
+                }
+            });
+            // Close dial history dropdown on outside click or Escape
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dialer-input-box')) {
+                    this.closeDialHistoryDropdown();
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.closeDialHistoryDropdown();
                 }
             });
 

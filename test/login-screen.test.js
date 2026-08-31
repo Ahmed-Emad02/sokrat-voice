@@ -195,3 +195,21 @@ test('7. WebRTC Extension Login, Password Toggle & Disconnect/Reconnect Parity',
         assert.match(content, /preset\.secret\s*\|\|\s*this\.sessionSecrets\.get\(preset\.id\)/, `${name}: reconnect retrieves session credentials`);
     });
 });
+
+test('8. Dialer Input Box Previously Dialed Numbers Dropdown Parity', () => {
+    [
+        { name: 'views/index.ejs', content: ejsContent },
+        { name: 'public/js/softphone-ui.js', content: jsContent }
+    ].forEach(({ name, content }) => {
+        assert.match(content, /toggleDialHistoryDropdown/, `${name}: toggleDialHistoryDropdown exists`);
+        assert.match(content, /closeDialHistoryDropdown/, `${name}: closeDialHistoryDropdown exists`);
+        assert.match(content, /renderDialHistoryDropdown/, `${name}: renderDialHistoryDropdown exists`);
+        assert.match(content, /getDialedHistoryDetails/, `${name}: getDialedHistoryDetails exists`);
+    });
+
+    assert.match(ejsContent, /id="dialHistoryDropdownBtn"/, 'index.ejs contains dialHistoryDropdownBtn');
+    assert.match(ejsContent, /id="dialHistoryDropdown"/, 'index.ejs contains dialHistoryDropdown container');
+    assert.match(ejsContent, /id="dialHistoryDropdownList"/, 'index.ejs contains dialHistoryDropdownList');
+    assert.match(cssContent, /\.dial-history-dropdown-btn/, 'softphone.css contains dial-history-dropdown-btn styles');
+    assert.match(cssContent, /\.dial-history-dropdown/, 'softphone.css contains dial-history-dropdown styles');
+});
