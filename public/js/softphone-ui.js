@@ -788,10 +788,10 @@
                                         ${SVG_ICONS.mic}
                                         <span>${isAr ? 'ميك' : 'MIC'}</span>
                                     </div>
-                                    <div class="vu-slider-wrap">
-                                        <input type="range" id="line2MicVolumeSlider" class="vu-volume-slider" min="0" max="100" value="100" step="1" title="Line 2 Mic Volume">
-                                        <span id="line2MicVolumeVal" class="vu-vol-val">100%</span>
-                                    </div>
+                                    <span id="line2MicVolumeVal" class="vu-vol-val">100%</span>
+                                </div>
+                                <div class="vu-slider-wrap">
+                                    <input type="range" id="line2MicVolumeSlider" class="vu-volume-slider" min="0" max="100" value="100" step="1" title="Line 2 Mic Volume">
                                 </div>
                                 <div class="vu-meter-track">
                                     <div id="line2VuMeterBar" class="vu-meter-bar"></div>
@@ -803,10 +803,10 @@
                                         ${SVG_ICONS.headphones}
                                         <span>${isAr ? 'سماعة' : 'SPK'}</span>
                                     </div>
-                                    <div class="vu-slider-wrap">
-                                        <input type="range" id="line2SpeakerVolumeSlider" class="vu-volume-slider" min="0" max="100" value="100" step="1" title="Line 2 Speaker Volume">
-                                        <span id="line2SpeakerVolumeVal" class="vu-vol-val">100%</span>
-                                    </div>
+                                    <span id="line2SpeakerVolumeVal" class="vu-vol-val">100%</span>
+                                </div>
+                                <div class="vu-slider-wrap">
+                                    <input type="range" id="line2SpeakerVolumeSlider" class="vu-volume-slider" min="0" max="100" value="100" step="1" title="Line 2 Speaker Volume">
                                 </div>
                                 <div class="vu-meter-track">
                                     <div id="line2SpeakerVuMeterBar" class="vu-meter-bar"></div>

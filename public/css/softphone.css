@@ -2138,19 +2138,22 @@ html.light-theme .header-actions-group .header-action-btn:hover {
 .dual-vu-meters-deck {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-    padding: 8px 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-md);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    gap: 8px;
+    margin-top: 6px;
+    padding: 2px 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .vu-channel-card {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0;
 }
 
 .vu-channel-header {
@@ -2161,85 +2164,12 @@ html.light-theme .header-actions-group .header-action-btn:hover {
     height: 14px;
 }
 
-.vu-slider-wrap {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-    justify-content: flex-end;
-}
-
-.vu-volume-slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    max-width: 100px;
-    height: 3.5px;
-    background: var(--bg-input);
-    border: 1px solid var(--border-primary);
-    border-radius: 9999px;
-    outline: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.vu-volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--accent-green);
-    border: 1px solid #ffffff;
-    box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
-    cursor: pointer;
-    transition: transform 0.12s ease;
-}
-
-.vu-volume-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.25);
-    background: #34d399;
-}
-
-.vu-volume-slider::-moz-range-thumb {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--accent-green);
-    border: 1px solid #ffffff;
-    box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
-    cursor: pointer;
-}
-
-.vu-vol-val {
-    font-family: var(--font-mono);
-    font-size: 8.5px;
-    font-weight: 800;
-    color: var(--text-muted);
-    min-width: 26px;
-    text-align: right;
-    user-select: none;
-}
-
-html[dir="rtl"] .vu-vol-val {
-    text-align: left;
-}
-
-.vu-meter-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 12px;
-}
-
 .vu-meter-label {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    width: 44px;
-    flex-shrink: 0;
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 800;
     letter-spacing: 0.4px;
     color: var(--text-muted);
@@ -2254,10 +2184,74 @@ html[dir="rtl"] .vu-vol-val {
     flex-shrink: 0;
 }
 
+.vu-vol-val {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.vu-slider-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    padding: 2px 0;
+}
+
+.vu-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 5px;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-primary);
+    border-radius: 9999px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    margin: 0;
+}
+
+.vu-volume-slider:hover {
+    border-color: var(--border-accent);
+}
+
+.vu-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    border: 1.5px solid #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 6px rgba(239, 68, 68, 0.4);
+    cursor: pointer;
+    transition: transform 0.12s ease, background-color 0.12s ease;
+}
+
+.vu-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: var(--accent-hover);
+}
+
+.vu-volume-slider::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    border: 1.5px solid #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 6px rgba(239, 68, 68, 0.4);
+    cursor: pointer;
+}
+
 .vu-meter-track {
     width: 100%;
-    height: 3.5px;
-    background: var(--bg-input);
+    height: 4px;
+    background: var(--bg-card-subtle);
     border: 1px solid var(--border-primary);
     border-radius: 9999px;
     overflow: hidden;
@@ -2273,23 +2267,23 @@ html[dir="rtl"] .vu-vol-val {
 }
 
 html.light-theme .dual-vu-meters-deck {
-    background: #ffffff;
-    border-color: #cbd5e1;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 html.light-theme .vu-volume-slider {
-    background: #f1f5f9;
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+html.light-theme .vu-meter-track {
+    background: #e2e8f0;
     border-color: #cbd5e1;
 }
 
 html.light-theme .vu-vol-val {
-    color: #64748b;
-}
-
-html.light-theme .vu-meter-track {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
+    color: #475569;
 }
 
 html.light-theme .vu-meter-label {
@@ -2597,17 +2591,6 @@ html.light-theme .vu-meter-label svg {
     user-select: none;
 }
 
-.dual-vu-meters-deck {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-md);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
-}
 
 /* ==========================================================================
    FIXED CONSOLE HEIGHT & STABLE TAB SWITCHING
