@@ -95,7 +95,7 @@ async function fetchPbxExtensions() {
 
     // Fallback to Asterisk CLI parsing
     return new Promise((resolve) => {
-        exec('/usr/sbin/asterisk -rx "pjsip show endpoints" -rx "sip show peers"', (err, stdout) => {
+        exec('/usr/sbin/asterisk -rx "pjsip show endpoints" ; /usr/sbin/asterisk -rx "sip show peers"', (err, stdout) => {
             const list = [];
             const webrtcList = [];
             const seen = new Set();

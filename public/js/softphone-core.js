@@ -681,6 +681,7 @@
                 throw new Error('Extension password is required.');
             }
 
+            this.lastSecret = secret;
             this.takeOverOwnership();
             this.disconnect();
             this.activePreset = preset;
@@ -719,9 +720,10 @@
                     session_timers: false
                 };
 
-                this.ua = new JsSIP.UA(configuration);
-                this.attachUaListeners(this.ua, preset);
-                this.ua.start();
+                const newUa = new JsSIP.UA(configuration);
+                this.ua = newUa;
+                this.attachUaListeners(newUa, preset);
+                newUa.start();
                 this.startKeepAlive();
             } catch (err) {
                 this.setRegState('DISCONNECTED');
@@ -730,19 +732,26 @@
         }
 
         attachUaListeners(ua, preset) {
-            ua.on('connecting', () => this.setRegState('CONNECTING'));
+            ua.on('connecting', () => {
+                if (this.ua !== ua) return;
+                this.setRegState('CONNECTING');
+            });
             ua.on('connected', () => {
+                if (this.ua !== ua) return;
                 this.reconnectAttempt = 0;
             });
             ua.on('registered', () => {
+                if (this.ua !== ua) return;
                 this.setRegState('REGISTERED');
                 this.emit('registered', { preset });
             });
             ua.on('unregistered', () => {
+                if (this.ua !== ua) return;
                 this.setRegState('DISCONNECTED');
                 this.emit('unregistered');
             });
             ua.on('registrationFailed', (e) => {
+                if (this.ua !== ua) return;
                 const code = e.response ? e.response.status_code : 0;
                 if (code === 401 || code === 403) {
                     this.setRegState('AUTH_FAILED');
@@ -754,12 +763,16 @@
                 }
             });
             ua.on('disconnected', () => {
+                if (this.ua !== ua) return;
                 if (this.regState !== 'AUTH_FAILED' && this.regState !== 'DISCONNECTED') {
                     this.setRegState('RETRY_WAIT');
                     this.scheduleReconnect();
                 }
             });
-            ua.on('newRTCSession', (data) => this.handleNewRTCSession(data.session));
+            ua.on('newRTCSession', (data) => {
+                if (this.ua !== ua) return;
+                this.handleNewRTCSession(data.session);
+            });
         }
 
         setRegState(state) {
@@ -781,11 +794,19 @@
                 }
             }, backoffSec * 1000);
         }
-
-        reconnect() {
+        async reconnect() {
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-            if (this.ua && this.regState !== 'AUTH_FAILED') {
-                try { this.ua.start(); } catch (_) {}
+            if (this.regState === 'AUTH_FAILED') return;
+            if (this.ua) {
+                try {
+                    this.ua.start();
+                    return;
+                } catch (_) {}
+            }
+            if (this.activePreset && this.lastSecret) {
+                try {
+                    await this.connect(this.activePreset, this.lastSecret);
+                } catch (_) {}
             }
         }
 
@@ -797,10 +818,12 @@
             this.stopKeepAlive();
             this.hangupAllCalls();
             if (this.ua) {
-                try {
-                    this.ua.stop();
-                } catch (_) {}
+                const oldUa = this.ua;
                 this.ua = null;
+                try {
+                    oldUa.removeAllListeners();
+                    oldUa.stop();
+                } catch (_) {}
             }
             if (!preserveAuthFailed) {
                 this.setRegState('DISCONNECTED');

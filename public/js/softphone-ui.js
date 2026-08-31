@@ -209,8 +209,13 @@
             this.onPresetChanged();
             this.setupClickToCall();
             this.initVolumeControls();
-        }
 
+            if (this.core.regState === 'REGISTERED') {
+                this.updateViewMode('console');
+            } else {
+                this.updateViewMode('login');
+            }
+        }
         cacheDom() {
             this.dom.statusBadge = document.getElementById('statusBadge');
             this.dom.statusText = document.getElementById('statusText');
@@ -373,15 +378,19 @@
             const matchingPreset = presets.find(p => String(p.extension) === String(extNum));
             const passInput = document.getElementById('loginPasswordInput');
             if (matchingPreset && passInput) {
-                passInput.value = matchingPreset.secret || '';
+                passInput.value = matchingPreset.secret || this.sessionSecrets.get(matchingPreset.id) || '';
             }
         }
-                async submitLogin() {
+
+        async submitLogin() {
+            const extSelect = document.getElementById('loginExtSelect');
             const extInput = document.getElementById('loginExtInput');
             const passInput = document.getElementById('loginPasswordInput');
             const rememberCheckbox = document.getElementById('loginRememberCheckbox');
 
-            const extension = extInput ? extInput.value.trim() : '';
+            const manualWrapper = document.getElementById('loginFieldManualWrapper');
+            const isManual = manualWrapper && manualWrapper.style.display !== 'none';
+            const extension = isManual ? (extInput ? extInput.value.trim() : '') : (extSelect && extSelect.value ? extSelect.value.trim() : (extInput ? extInput.value.trim() : ''));
             const password = passInput ? passInput.value.trim() : '';
             const remember = rememberCheckbox ? rememberCheckbox.checked : true;
 
@@ -422,8 +431,9 @@
             if (remember) {
                 presets.forEach(p => p.isDefault = (p.id === preset.id));
                 this.savePresets(presets);
-                this.sessionSecrets.set(preset.id, password);
             }
+            this.sessionSecrets.set(preset.id, password);
+            this.lastSessionPassword = password;
 
             try {
                 const submitBtn = document.getElementById('loginSubmitBtn');
@@ -436,7 +446,7 @@
                 const submitBtn = document.getElementById('loginSubmitBtn');
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || 'CONNECT TO EXTENSION ↗') + '</span>';
+                    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || 'CONNECT & LOGIN ↗') + '</span>';
                 }
                 this.showToast(err.message, 'error');
             }
@@ -447,19 +457,33 @@
             const preset = presets.find(p => p.id === presetId);
             if (!preset) return;
 
-            let password = preset.secret || this.sessionSecrets.get(preset.id) || '';
+            let password = preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '';
             if (!password) {
+                this.selectAccountForLogin(preset);
+                const passInput = document.getElementById('loginPasswordInput');
+                if (passInput) passInput.focus();
                 const promptMsg = (this.t.loginEnterPasswordForExt || 'Please enter password for extension {ext}').replace('{ext}', preset.extension);
-                password = prompt(promptMsg);
-                if (!password) return;
-                this.sessionSecrets.set(preset.id, password);
+                this.showToast(promptMsg, 'warning');
+                return;
             }
 
+            this.sessionSecrets.set(preset.id, password);
+            this.lastSessionPassword = password;
             const connMsg = (this.t.loginConnectingExt || 'Connecting Ext {ext}...').replace('{ext}', preset.extension);
             this.showToast(connMsg, 'info');
             try {
+                const submitBtn = document.getElementById('loginSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span>' + (this.t.loginConnecting || 'Connecting...') + '</span>';
+                }
                 await this.core.connect(preset, password);
             } catch (err) {
+                const submitBtn = document.getElementById('loginSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || 'CONNECT & LOGIN ↗') + '</span>';
+                }
                 this.showToast(err.message, 'error');
             }
         }
@@ -584,8 +608,15 @@
             const extSelect = document.getElementById('loginExtSelect');
 
             if (extInput) extInput.value = preset.extension;
-            if (extSelect) extSelect.value = preset.extension;
-            const secret = preset.secret || this.sessionSecrets.get(preset.id) || '';
+            if (extSelect) {
+                extSelect.value = preset.extension;
+                if (extSelect.value !== preset.extension) {
+                    this.setLoginInputMode('manual');
+                } else {
+                    this.setLoginInputMode('select');
+                }
+            }
+            const secret = preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '';
             if (passInput) passInput.value = secret;
             if (passInput && !secret) passInput.focus();
 
@@ -593,17 +624,36 @@
             cards.forEach(c => c.classList.toggle('selected', c.dataset.id === preset.id));
         }
 
-                logout() {
+        logout() {
             this.core.disconnect();
+            this.updateViewMode('login');
             this.showToast(this.t.statusOffline || 'Logged out of extension', 'info');
         }
 
+        switchAccount() {
+            this.logout();
+        }
+
         updateViewMode(mode) {
+            const loginView = document.getElementById('loginView');
             const mainAppWindow = document.getElementById('mainAppWindow');
-            if (mainAppWindow) mainAppWindow.style.display = 'flex';
             const titleEl = document.getElementById('activeAccountHeaderTitle');
-            if (titleEl && this.core.activePreset) {
-                titleEl.textContent = 'Ext ' + this.core.activePreset.extension + (this.core.activePreset.label ? ' - ' + this.core.activePreset.label : '');
+
+            if (mode === 'console') {
+                if (loginView) loginView.style.display = 'none';
+                if (mainAppWindow) mainAppWindow.style.display = 'flex';
+                if (titleEl && this.core.activePreset) {
+                    titleEl.textContent = 'Ext ' + this.core.activePreset.extension + (this.core.activePreset.label ? ' - ' + this.core.activePreset.label : '');
+                }
+            } else {
+                if (loginView) loginView.style.display = 'flex';
+                if (mainAppWindow) mainAppWindow.style.display = 'none';
+                const submitBtn = document.getElementById('loginSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || (this.currentLang === 'ar' ? 'تسجيل الدخول والاتصال ↗' : 'CONNECT & LOGIN ↗')) + '</span>';
+                }
+                this.renderSavedAccountsLoginList();
             }
         }
 
@@ -1318,10 +1368,33 @@
                 });
             }
 
+            if (this.dom.loginExtSelect) {
+                const currentVal = this.dom.loginExtSelect.value;
+                this.dom.loginExtSelect.textContent = '';
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = this.currentLang === 'ar' ? '-- اختر تحويلة WebRTC --' : '-- Select WebRTC Extension --';
+                this.dom.loginExtSelect.appendChild(defaultOpt);
+
+                const listToUse = (this.serverWebrtcList && this.serverWebrtcList.length > 0) ? this.serverWebrtcList : presets;
+                listToUse.forEach(item => {
+                    const extNum = item.extension;
+                    const opt = document.createElement('option');
+                    opt.value = extNum;
+                    opt.textContent = (item.name && item.name !== extNum) ? `${extNum} - ${item.name} (${item.tech || 'pjsip'})` : `Ext ${extNum} (${item.tech || 'pjsip'})`;
+                    if (currentVal && String(currentVal) === String(extNum)) {
+                        opt.selected = true;
+                    } else if (!currentVal && String(extNum) === '150') {
+                        opt.selected = true;
+                    }
+                    this.dom.loginExtSelect.appendChild(opt);
+                });
+                this.onLoginExtensionSelected();
+            }
+
             this.savePresets(presets);
             this.onPresetChanged();
         }
-
         getSelectedPreset() {
             if (!this.dom.presetSelect) return null;
             const id = this.dom.presetSelect.value;
@@ -1810,7 +1883,9 @@
                 this.updateViewMode('console');
             });
             this.core.on('unregistered', () => {
-                this.updateViewMode('login');
+                if (this.core.activePreset) {
+                    this.updateStatusUi('DISCONNECTED');
+                }
             });
             this.core.on('authFailed', () => {
                 this.updateViewMode('login');
@@ -2546,32 +2621,42 @@
 
         // --- DOM ACTIONS & HOTKEYS ---
         bindDomEvents() {
-            this.dom.presetSelect.addEventListener('change', () => this.onPresetChanged());
-            this.dom.passwordInput.addEventListener('input', () => {
-                const preset = this.getSelectedPreset();
-                if (preset) {
-                    this.sessionSecrets.set(preset.id, this.dom.passwordInput.value);
-                }
-            });
-
-            this.dom.connectBtn.addEventListener('click', async () => {
-                if (this.core.regState === 'REGISTERED' || this.core.regState === 'CONNECTING' || this.core.regState === 'RETRY_WAIT') {
-                    this.core.disconnect();
-                } else {
+            if (this.dom.presetSelect) {
+                this.dom.presetSelect.addEventListener('change', () => this.onPresetChanged());
+            }
+            if (this.dom.passwordInput) {
+                this.dom.passwordInput.addEventListener('input', () => {
                     const preset = this.getSelectedPreset();
-                    const secret = this.dom.passwordInput.value.trim();
-                    if (!preset || !secret) {
-                        this.showToast('Please select account and enter password', 'error');
-                        return;
+                    if (preset) {
+                        this.sessionSecrets.set(preset.id, this.dom.passwordInput.value);
                     }
-                    try {
-                        await this.core.connect(preset, secret);
-                    } catch (err) {
-                        this.showToast(err.message, 'error');
-                    }
-                }
-            });
+                });
+            }
 
+            if (this.dom.connectBtn) {
+                this.dom.connectBtn.addEventListener('click', async () => {
+                    if (this.core.regState === 'REGISTERED' || this.core.regState === 'CONNECTING' || this.core.regState === 'RETRY_WAIT') {
+                        this.core.disconnect();
+                    } else {
+                        const preset = this.getSelectedPreset();
+                        if (!preset) {
+                            this.showToast('Please select account', 'error');
+                            return;
+                        }
+                        const secret = preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || this.core.lastSecret || '';
+                        if (!secret) {
+                            this.showToast(this.t.loginEnterPasswordError || 'Please log in with extension password', 'warning');
+                            this.updateViewMode('login');
+                            return;
+                        }
+                        try {
+                            await this.core.connect(preset, secret);
+                        } catch (err) {
+                            this.showToast(err.message, 'error');
+                        }
+                    }
+                });
+            }
             this.dom.callBtn.addEventListener('click', () => this.handleCallAction());
             this.setupDialHistorySeeking(this.dom.dialInput, 'line1');
             this.dom.dialInput.addEventListener('keydown', (e) => {
@@ -3493,15 +3578,14 @@
 
                     // Check if credentials are present to auto-connect
                     const preset = this.getSelectedPreset();
-                    const secret = (this.dom.passwordInput ? this.dom.passwordInput.value.trim() : '') || (preset ? (preset.secret || this.sessionSecrets.get(preset.id) || '') : '');
+                    const secret = (preset ? (preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '') : '');
 
                     if (preset && secret && (this.core.regState === 'DISCONNECTED' || !this.core.ua)) {
                         this.showToast(`Connecting Ext ${preset.extension} to call ${cleanNum}...`, 'info');
-                        if (this.dom.passwordInput) this.dom.passwordInput.value = secret;
                         if (this.dom.connectBtn) this.dom.connectBtn.click();
-                    } else if (!secret && this.dom.passwordInput) {
-                        this.dom.passwordInput.focus();
-                        this.showToast(`Enter password to call ${cleanNum}`, 'warning');
+                    } else if (!secret) {
+                        this.updateViewMode('login');
+                        this.showToast(`Log in to call ${cleanNum}`, 'warning');
                     } else {
                         this.showToast(`Click-to-call: ${cleanNum}`, 'info');
                     }

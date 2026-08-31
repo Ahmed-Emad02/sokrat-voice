@@ -214,11 +214,11 @@ body.is-popout .app-window, html.is-popout .app-window {
     background: var(--bg-hover) !important;
 }
 
-.titlebar-btn, .sub-nav-tab, .header-action-btn, .clear-input-btn {
+.titlebar-btn, .sub-nav-tab, .header-action-btn, .clear-input-btn, .login-mode-pill, .login-password-toggle, .login-action-btn {
     isolation: auto !important;
     overflow: visible !important;
 }
-.titlebar-btn::before, .sub-nav-tab::before, .header-action-btn::before, .clear-input-btn::before {
+.titlebar-btn::before, .sub-nav-tab::before, .header-action-btn::before, .clear-input-btn::before, .login-mode-pill::before, .login-password-toggle::before, .login-action-btn::before {
     display: none !important;
     content: none !important;
 }
@@ -2682,4 +2682,272 @@ html.light-theme .vu-meter-label svg {
 .app-window.is-in-call .tab-view-content {
     height: auto !important;
     min-height: 0;
+}
+
+/* ==========================================================================
+   SOKRAT VOIP LOGIN SCREEN & VIEW SYSTEM
+   ========================================================================== */
+
+.app-window.login-window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 440px;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: calc(100vh - 24px);
+    margin: auto 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 14px;
+    box-shadow: var(--shadow-window);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative;
+    z-index: 1;
+}
+
+.login-body {
+    padding: 24px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.login-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.login-logo-container {
+    margin-bottom: 4px;
+}
+
+.login-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+}
+
+.login-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    text-align: center;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.login-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.login-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.login-mode-pills {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-input);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary);
+}
+
+.login-mode-pill {
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    isolation: auto !important;
+    overflow: visible !important;
+}
+
+.login-mode-pill.active {
+    background: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+.login-password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.login-password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+    isolation: auto !important;
+    overflow: visible !important;
+}
+
+[dir="rtl"] .login-password-toggle {
+    right: auto;
+    left: 8px;
+}
+
+.login-password-toggle:hover {
+    color: var(--text-primary);
+}
+
+.login-options-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+}
+
+.login-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.login-submit-btn {
+    padding: 12px 0 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3) !important;
+    min-height: 44px !important;
+}
+
+.login-saved-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--border-primary);
+    padding-top: 14px;
+    margin-top: 4px;
+}
+
+.login-saved-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.login-saved-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.login-action-btn {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: opacity 0.15s ease;
+    isolation: auto !important;
+    overflow: visible !important;
+}
+
+.login-action-btn:hover {
+    opacity: 0.8;
+}
+
+.login-saved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+html.light-theme .login-window {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+}
+
+html.light-theme .login-logo-dark {
+    display: none !important;
+}
+
+html.light-theme .login-logo-light {
+    display: block !important;
+}
+
+html.light-theme .login-title {
+    color: #111827 !important;
+}
+
+html.light-theme .login-subtitle {
+    color: #6b7280 !important;
+}
+
+html.light-theme .login-label {
+    color: #4b5563 !important;
+}
+
+html.light-theme .login-mode-pills {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+html.light-theme .login-mode-pill {
+    color: #64748b !important;
+}
+
+html.light-theme .login-mode-pill.active {
+    background: #b91c1c !important;
+    color: #ffffff !important;
+}
+
+html.light-theme .login-checkbox-label {
+    color: #4b5563 !important;
+}
+
+html.light-theme .login-saved-section {
+    border-top-color: #e5e7eb !important;
+}
+
+html.light-theme .login-saved-title {
+    color: #6b7280 !important;
 }

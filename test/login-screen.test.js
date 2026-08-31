@@ -116,13 +116,18 @@ test('4. Modals, Extensions Roster & Preset JS Management', () => {
 });
 
 test('5. Telephony Console DOM Structure in Rendered HTML', () => {
+    assert.match(ejsContent, /id="loginView"/, 'index.ejs contains loginView container');
+    assert.match(ejsContent, /id="loginExtSelect"/, 'index.ejs contains loginExtSelect');
+    assert.match(ejsContent, /id="loginPasswordInput"/, 'index.ejs contains loginPasswordInput');
+    assert.match(ejsContent, /id="loginSubmitBtn"/, 'index.ejs contains loginSubmitBtn');
+    assert.match(ejsContent, /id="loginSavedAccountsList"/, 'index.ejs contains loginSavedAccountsList');
     assert.match(ejsContent, /id="mainAppWindow"/, 'index.ejs contains mainAppWindow container');
     assert.match(ejsContent, /class="app-titlebar"/, 'index.ejs contains app-titlebar');
     assert.match(ejsContent, /class="workspace-header"/, 'index.ejs contains workspace-header');
     assert.match(ejsContent, /class="header-status-strip"/, 'index.ejs contains header-status-strip');
     assert.match(ejsContent, /id="presetSelect"/, 'index.ejs contains presetSelect');
-    assert.match(ejsContent, /id="passwordInput"/, 'index.ejs contains passwordInput');
     assert.match(ejsContent, /id="connectBtn"/, 'index.ejs contains connectBtn');
+    assert.doesNotMatch(ejsContent, /<input[^>]*id="passwordInput"[^>]*class="[^"]*font-mono"[^>]*style="[^"]*85px;?"/, 'telephony console header does not contain passwordInput');
     assert.match(ejsContent, /class="sub-nav-tabs"/, 'index.ejs contains sub-nav-tabs');
     assert.match(ejsContent, /id="tabBtnDialer"/, 'index.ejs contains tabBtnDialer');
     assert.match(ejsContent, /id="tabBtnContacts"/, 'index.ejs contains tabBtnContacts');
@@ -133,7 +138,6 @@ test('5. Telephony Console DOM Structure in Rendered HTML', () => {
     assert.match(ejsContent, /class="keypad-grid"/, 'index.ejs contains keypad-grid');
     assert.match(ejsContent, /class="keypad-action-row"/, 'index.ejs contains keypad-action-row');
     assert.match(ejsContent, /class="dialer-tool-bar"/, 'index.ejs contains dialer-tool-bar');
-    assert.doesNotMatch(ejsContent, /id="loginPage"/, 'index.ejs must NOT contain loginPage');
 });
 
 test('6. Live HTTP Server Single-Window Direct Render Validation', async () => {
@@ -151,19 +155,43 @@ test('6. Live HTTP Server Single-Window Direct Render Validation', async () => {
     const enRes = await fetchUrl('/');
     assert.equal(enRes.statusCode, 200);
     assert.match(enRes.body, /<html lang="en" dir="ltr">/);
+    assert.match(enRes.body, /id="loginView"/);
+    assert.match(enRes.body, /id="loginExtSelect"/);
+    assert.match(enRes.body, /id="loginPasswordInput"/);
+    assert.match(enRes.body, /id="loginSubmitBtn"/);
     assert.match(enRes.body, /id="mainAppWindow"/);
     assert.match(enRes.body, /id="presetSelect"/);
-    assert.match(enRes.body, /id="passwordInput"/);
     assert.match(enRes.body, /id="connectBtn"/);
-    assert.doesNotMatch(enRes.body, /id="loginPage"/);
 
     // Test Arabic endpoint (?lang=ar)
     const arRes = await fetchUrl('/?lang=ar');
     assert.equal(arRes.statusCode, 200);
     assert.match(arRes.body, /<html lang="ar" dir="rtl">/);
+    assert.match(arRes.body, /id="loginView"/);
+    assert.match(arRes.body, /id="loginExtSelect"/);
+    assert.match(arRes.body, /id="loginPasswordInput"/);
+    assert.match(arRes.body, /id="loginSubmitBtn"/);
     assert.match(arRes.body, /id="mainAppWindow"/);
     assert.match(arRes.body, /id="presetSelect"/);
-    assert.match(arRes.body, /id="passwordInput"/);
     assert.match(arRes.body, /id="connectBtn"/);
-    assert.doesNotMatch(arRes.body, /id="loginPage"/);
+});
+
+test('7. WebRTC Extension Login, Password Toggle & Disconnect/Reconnect Parity', () => {
+    [
+        { name: 'views/index.ejs', content: ejsContent },
+        { name: 'public/js/softphone-ui.js', content: jsContent }
+    ].forEach(({ name, content }) => {
+        // Login methods exist
+        assert.match(content, /setLoginInputMode/, `${name}: setLoginInputMode exists`);
+        assert.match(content, /toggleLoginPasswordVisibility/, `${name}: toggleLoginPasswordVisibility exists`);
+        assert.match(content, /onLoginExtensionSelected/, `${name}: onLoginExtensionSelected exists`);
+        assert.match(content, /submitLogin/, `${name}: submitLogin exists`);
+        assert.match(content, /quickLoginAccount/, `${name}: quickLoginAccount exists`);
+        assert.match(content, /switchAccount/, `${name}: switchAccount exists`);
+        assert.match(content, /updateViewMode/, `${name}: updateViewMode exists`);
+
+        // Disconnect and reconnect preserves session credentials without console password prompt
+        assert.match(content, /sessionSecrets\.set\(preset\.id,\s*password\)/, `${name}: caches session password on login`);
+        assert.match(content, /preset\.secret\s*\|\|\s*this\.sessionSecrets\.get\(preset\.id\)/, `${name}: reconnect retrieves session credentials`);
+    });
 });

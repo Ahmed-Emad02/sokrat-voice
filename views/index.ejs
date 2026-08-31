@@ -228,11 +228,11 @@ body.is-popout .app-window, html.is-popout .app-window {
     background: var(--bg-hover) !important;
 }
 
-.titlebar-btn, .sub-nav-tab, .header-action-btn, .clear-input-btn {
+.titlebar-btn, .sub-nav-tab, .header-action-btn, .clear-input-btn, .login-mode-pill, .login-password-toggle, .login-action-btn {
     isolation: auto !important;
     overflow: visible !important;
 }
-.titlebar-btn::before, .sub-nav-tab::before, .header-action-btn::before, .clear-input-btn::before {
+.titlebar-btn::before, .sub-nav-tab::before, .header-action-btn::before, .clear-input-btn::before, .login-mode-pill::before, .login-password-toggle::before, .login-action-btn::before {
     display: none !important;
     content: none !important;
 }
@@ -2699,6 +2699,273 @@ html.light-theme .vu-meter-label svg {
     min-height: 0;
 }
 
+/* ==========================================================================
+   SOKRAT VOIP LOGIN SCREEN & VIEW SYSTEM
+   ========================================================================== */
+
+.app-window.login-window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 440px;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: calc(100vh - 24px);
+    margin: auto 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 14px;
+    box-shadow: var(--shadow-window);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative;
+    z-index: 1;
+}
+
+.login-body {
+    padding: 24px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.login-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.login-logo-container {
+    margin-bottom: 4px;
+}
+
+.login-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+}
+
+.login-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    text-align: center;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.login-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.login-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.login-mode-pills {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-input);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary);
+}
+
+.login-mode-pill {
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    isolation: auto !important;
+    overflow: visible !important;
+}
+
+.login-mode-pill.active {
+    background: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+.login-password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.login-password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+    isolation: auto !important;
+    overflow: visible !important;
+}
+
+[dir="rtl"] .login-password-toggle {
+    right: auto;
+    left: 8px;
+}
+
+.login-password-toggle:hover {
+    color: var(--text-primary);
+}
+
+.login-options-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+}
+
+.login-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.login-submit-btn {
+    padding: 12px 0 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3) !important;
+    min-height: 44px !important;
+}
+
+.login-saved-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--border-primary);
+    padding-top: 14px;
+    margin-top: 4px;
+}
+
+.login-saved-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.login-saved-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.login-action-btn {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: opacity 0.15s ease;
+    isolation: auto !important;
+    overflow: visible !important;
+}
+
+.login-action-btn:hover {
+    opacity: 0.8;
+}
+
+.login-saved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+html.light-theme .login-window {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+}
+
+html.light-theme .login-logo-dark {
+    display: none !important;
+}
+
+html.light-theme .login-logo-light {
+    display: block !important;
+}
+
+html.light-theme .login-title {
+    color: #111827 !important;
+}
+
+html.light-theme .login-subtitle {
+    color: #6b7280 !important;
+}
+
+html.light-theme .login-label {
+    color: #4b5563 !important;
+}
+
+html.light-theme .login-mode-pills {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+html.light-theme .login-mode-pill {
+    color: #64748b !important;
+}
+
+html.light-theme .login-mode-pill.active {
+    background: #b91c1c !important;
+    color: #ffffff !important;
+}
+
+html.light-theme .login-checkbox-label {
+    color: #4b5563 !important;
+}
+
+html.light-theme .login-saved-section {
+    border-top-color: #e5e7eb !important;
+}
+
+html.light-theme .login-saved-title {
+    color: #6b7280 !important;
+}
     </style>
 </head>
 <body>
@@ -2726,14 +2993,124 @@ html.light-theme .vu-meter-label svg {
         </div>
     </div>
 
-    <!-- 1. MAIN APP WINDOW CONTAINER (TELEPHONY CONSOLE) -->
-    <div id="mainAppWindow" class="app-window">
-        
-                <!-- macOS Style Window Titlebar -->
+    <!-- 1. DEDICATED SOFTPHONE LOGIN SCREEN -->
+    <div id="loginView" class="app-window login-window" style="display: flex;">
+        <!-- Titlebar -->
         <div class="app-titlebar">
-            
-            <div class="app-titlebar-title"><span>SOKRAT <span style="color: var(--accent-color);">VOICE</span></span></div>
+            <div class="app-titlebar-title">
+                <span>SOKRAT <span style="color: var(--accent-color);">VOICE</span></span>
+            </div>
             <div class="titlebar-actions">
+                <button type="button" onclick="window.softphoneUi.toggleTheme()" class="titlebar-btn" title="Toggle Light/Dark Theme">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <button type="button" onclick="window.softphoneUi.openPersistentWindow()" class="titlebar-btn" title="Open in Persistent Popout Window">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Body -->
+        <div class="login-body">
+            <div class="login-header text-center">
+                <div class="login-logo-container">
+                    <img src="/logo.png" alt="Sokrat Voice" class="login-logo login-logo-dark" style="height: 38px; object-fit: contain; margin: 0 auto;">
+                    <img src="/logo_dark.png" alt="Sokrat Voice" class="login-logo login-logo-light" style="height: 38px; object-fit: contain; margin: 0 auto; display: none;">
+                </div>
+                <h2 class="login-title"><%= isRtl ? 'تسجيل الدخول للهاتف' : 'WebRTC Softphone Login' %></h2>
+                <p class="login-subtitle"><%= isRtl ? 'اختر تحويلة WebRTC وكلمة السر لبدء الاتصال' : 'Select a WebRTC extension and enter password' %></p>
+            </div>
+
+            <form id="loginForm" class="login-form" onsubmit="event.preventDefault(); window.softphoneUi.submitLogin();">
+                <!-- Extension Selection & Input Mode -->
+                <div class="login-field-group">
+                    <div class="login-label-row">
+                        <label class="login-label" for="loginExtSelect">
+                            <%= isRtl ? 'تحويلة WebRTC (من السيرفر):' : 'WebRTC Extension (PBX):' %>
+                        </label>
+                        <div class="login-mode-pills">
+                            <button type="button" id="loginModeSelectBtn" class="login-mode-pill active" onclick="window.softphoneUi.setLoginInputMode('select')">
+                                <%= isRtl ? 'قائمة' : 'List' %>
+                            </button>
+                            <button type="button" id="loginModeManualBtn" class="login-mode-pill" onclick="window.softphoneUi.setLoginInputMode('manual')">
+                                <%= isRtl ? 'يدوي' : 'Manual' %>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Select Dropdown Mode -->
+                    <div id="loginFieldSelectWrapper" class="login-select-wrapper">
+                        <select id="loginExtSelect" class="input-text font-mono font-bold w-full" onchange="window.softphoneUi.onLoginExtensionSelected()">
+                            <option value=""><%= isRtl ? '-- اختر تحويلة WebRTC --' : '-- Select WebRTC Extension --' %></option>
+                            <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '150', name: '150', tech: 'pjsip'}]).forEach(function(ext) { %>
+                                <option value="<%= ext.extension %>" <%= (ext.extension === '150') ? 'selected' : '' %>>
+                                    <%= (ext.name && ext.name !== ext.extension) ? (ext.extension + ' - ' + ext.name) : ('Ext ' + ext.extension) %> (<%= ext.tech || 'pjsip' %>)
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <!-- Manual Input Mode (Hidden by default) -->
+                    <div id="loginFieldManualWrapper" class="login-manual-wrapper" style="display: none;">
+                        <input type="text" id="loginExtInput" class="input-text font-mono font-bold w-full" placeholder="150" value="150">
+                    </div>
+                </div>
+
+                <!-- Password Field with Show/Hide Toggle -->
+                <div class="login-field-group">
+                    <label class="login-label" for="loginPasswordInput">
+                        <%= isRtl ? 'كلمة سر التحويلة:' : 'Extension Password:' %>
+                    </label>
+                    <div class="login-password-wrapper">
+                        <input type="password" id="loginPasswordInput" class="input-text font-mono w-full" placeholder="••••••••" autocomplete="current-password">
+                        <button type="button" id="loginPasswordToggleBtn" class="login-password-toggle" onclick="window.softphoneUi.toggleLoginPasswordVisibility()" title="Show/Hide Password">
+                            <svg id="loginPassEyeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember Me Row -->
+                <div class="login-options-row">
+                    <label class="login-checkbox-label">
+                        <input type="checkbox" id="loginRememberCheckbox" checked style="accent-color: var(--accent-color);">
+                        <span><%= isRtl ? 'حفظ الحساب للدخول السريع' : 'Remember credentials on this device' %></span>
+                    </label>
+                </div>
+
+                <!-- Connect / Login Submit Button -->
+                <button type="submit" id="loginSubmitBtn" class="btn btn-primary login-submit-btn w-full shutter-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span><%= isRtl ? 'تسجيل الدخول والاتصال ↗' : 'CONNECT & LOGIN ↗' %></span>
+                </button>
+            </form>
+
+            <!-- Saved Accounts Quick Login Section -->
+            <div class="login-saved-section">
+                <div class="login-saved-header">
+                    <span class="login-saved-title"><%= isRtl ? 'الحسابات المحفوظة' : 'SAVED ACCOUNTS' %></span>
+                    <button type="button" class="login-action-btn" onclick="window.softphoneUi.openPresetModal()">
+                        + <%= isRtl ? 'إدارة' : 'Manage' %>
+                    </button>
+                </div>
+                <div id="loginSavedAccountsList" class="login-saved-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN APP WINDOW CONTAINER (TELEPHONY CONSOLE) -->
+    <div id="mainAppWindow" class="app-window" style="display: none;">
+        
+        <!-- macOS Style Window Titlebar -->
+        <div class="app-titlebar">
+            <div class="app-titlebar-title">
+                <span>SOKRAT <span style="color: var(--accent-color);">VOICE</span></span>
+                <span id="activeAccountHeaderTitle" class="active-ext-badge" style="font-size: 10px; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; margin-inline-start: 6px;"></span>
+            </div>
+            <div class="titlebar-actions">
+                <button type="button" class="titlebar-action-pill" onclick="window.softphoneUi.switchAccount()" title="Switch Account / Logout">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span><%= isRtl ? 'تبديل الحساب' : 'Switch' %></span>
+                </button>
                 <button type="button" class="titlebar-action-pill" onclick="window.softphoneUi.openPresetModal()" title="Accounts">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     <span><%= isRtl ? 'الحسابات' : 'Accounts' %></span>
@@ -2759,13 +3136,14 @@ html.light-theme .vu-meter-label svg {
         <div class="workspace-header">
             <!-- Line 1 Controls Column (Left 50% in Split View) -->
             <div class="header-line1-controls" id="headerLine1Controls">
-                
                 <div class="header-status-strip">
-                    <select id="presetSelect" class="input-text font-mono font-bold" style="width: 130px;">
-                        <option value="ext_150" selected>Ext 150 (pjsip)</option>
-                        <option value="ext_151">Ext 151 (Line 2 Ext 151)</option>
+                    <select id="presetSelect" class="input-text font-mono font-bold" style="width: 140px;" onchange="window.softphoneUi.onPresetChanged()">
+                        <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '150', name: '150', tech: 'pjsip'}]).forEach(function(ext) { %>
+                            <option value="ext_<%= ext.extension %>" <%= (ext.extension === '150') ? 'selected' : '' %>>
+                                Ext <%= ext.extension %> (<%= ext.tech || 'pjsip' %>)
+                            </option>
+                        <% }); %>
                     </select>
-                    <input type="password" id="passwordInput" placeholder="<%= isRtl ? 'كلمة السر' : 'Password' %>" class="input-text font-mono" style="width: 85px;">
                     <button type="button" id="connectBtn" class="btn btn-primary">
                         <%= isRtl ? 'اتصال' : 'Connect' %>
                     </button>
@@ -2778,11 +3156,13 @@ html.light-theme .vu-meter-label svg {
 
             <!-- Line 2 Controls Column (Right 50% in Split View) -->
             <div class="header-line2-controls" id="headerLine2Controls">
-                <select id="line2PresetSelect" class="input-text font-mono font-bold" style="width: 130px;">
-                    <option value="ext_151" selected>Ext 151 (Line 2 Ext 151)</option>
-                    <option value="ext_150">Ext 150 (pjsip)</option>
+                <select id="line2PresetSelect" class="input-text font-mono font-bold" style="width: 140px;">
+                    <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '151', name: '151', tech: 'pjsip'}]).forEach(function(ext) { %>
+                        <option value="ext_<%= ext.extension %>" <%= (ext.extension === '151') ? 'selected' : '' %>>
+                            Ext <%= ext.extension %> (<%= ext.tech || 'pjsip' %>)
+                        </option>
+                    <% }); %>
                 </select>
-                <input type="password" id="line2PasswordInput" placeholder="Password" class="input-text font-mono" style="width: 85px;">
                 <button type="button" id="line2ConnectBtn" class="btn btn-primary">Connect</button>
                 <div id="line2StatusBadge" class="status-pill"><span style="font-size: 7px;">●</span><span id="line2StatusText">Offline</span></div>
             </div>
@@ -3789,6 +4169,7 @@ html.light-theme .vu-meter-label svg {
                 throw new Error('Extension password is required.');
             }
 
+            this.lastSecret = secret;
             this.takeOverOwnership();
             this.disconnect();
             this.activePreset = preset;
@@ -3827,9 +4208,10 @@ html.light-theme .vu-meter-label svg {
                     session_timers: false
                 };
 
-                this.ua = new JsSIP.UA(configuration);
-                this.attachUaListeners(this.ua, preset);
-                this.ua.start();
+                const newUa = new JsSIP.UA(configuration);
+                this.ua = newUa;
+                this.attachUaListeners(newUa, preset);
+                newUa.start();
                 this.startKeepAlive();
             } catch (err) {
                 this.setRegState('DISCONNECTED');
@@ -3838,19 +4220,26 @@ html.light-theme .vu-meter-label svg {
         }
 
         attachUaListeners(ua, preset) {
-            ua.on('connecting', () => this.setRegState('CONNECTING'));
+            ua.on('connecting', () => {
+                if (this.ua !== ua) return;
+                this.setRegState('CONNECTING');
+            });
             ua.on('connected', () => {
+                if (this.ua !== ua) return;
                 this.reconnectAttempt = 0;
             });
             ua.on('registered', () => {
+                if (this.ua !== ua) return;
                 this.setRegState('REGISTERED');
                 this.emit('registered', { preset });
             });
             ua.on('unregistered', () => {
+                if (this.ua !== ua) return;
                 this.setRegState('DISCONNECTED');
                 this.emit('unregistered');
             });
             ua.on('registrationFailed', (e) => {
+                if (this.ua !== ua) return;
                 const code = e.response ? e.response.status_code : 0;
                 if (code === 401 || code === 403) {
                     this.setRegState('AUTH_FAILED');
@@ -3862,12 +4251,16 @@ html.light-theme .vu-meter-label svg {
                 }
             });
             ua.on('disconnected', () => {
+                if (this.ua !== ua) return;
                 if (this.regState !== 'AUTH_FAILED' && this.regState !== 'DISCONNECTED') {
                     this.setRegState('RETRY_WAIT');
                     this.scheduleReconnect();
                 }
             });
-            ua.on('newRTCSession', (data) => this.handleNewRTCSession(data.session));
+            ua.on('newRTCSession', (data) => {
+                if (this.ua !== ua) return;
+                this.handleNewRTCSession(data.session);
+            });
         }
 
         setRegState(state) {
@@ -3890,10 +4283,19 @@ html.light-theme .vu-meter-label svg {
             }, backoffSec * 1000);
         }
 
-        reconnect() {
+        async reconnect() {
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-            if (this.ua && this.regState !== 'AUTH_FAILED') {
-                try { this.ua.start(); } catch (_) {}
+            if (this.regState === 'AUTH_FAILED') return;
+            if (this.ua) {
+                try {
+                    this.ua.start();
+                    return;
+                } catch (_) {}
+            }
+            if (this.activePreset && this.lastSecret) {
+                try {
+                    await this.connect(this.activePreset, this.lastSecret);
+                } catch (_) {}
             }
         }
 
@@ -3905,10 +4307,12 @@ html.light-theme .vu-meter-label svg {
             this.stopKeepAlive();
             this.hangupAllCalls();
             if (this.ua) {
-                try {
-                    this.ua.stop();
-                } catch (_) {}
+                const oldUa = this.ua;
                 this.ua = null;
+                try {
+                    oldUa.removeAllListeners();
+                    oldUa.stop();
+                } catch (_) {}
             }
             if (!preserveAuthFailed) {
                 this.setRegState('DISCONNECTED');
@@ -4807,6 +5211,12 @@ html.light-theme .vu-meter-label svg {
             this.onPresetChanged();
             this.setupClickToCall();
             this.initVolumeControls();
+
+            if (this.core.regState === 'REGISTERED') {
+                this.updateViewMode('console');
+            } else {
+                this.updateViewMode('login');
+            }
         }
 
         cacheDom() {
@@ -4971,15 +5381,19 @@ html.light-theme .vu-meter-label svg {
             const matchingPreset = presets.find(p => String(p.extension) === String(extNum));
             const passInput = document.getElementById('loginPasswordInput');
             if (matchingPreset && passInput) {
-                passInput.value = matchingPreset.secret || '';
+                passInput.value = matchingPreset.secret || this.sessionSecrets.get(matchingPreset.id) || '';
             }
         }
-                async submitLogin() {
+
+        async submitLogin() {
+            const extSelect = document.getElementById('loginExtSelect');
             const extInput = document.getElementById('loginExtInput');
             const passInput = document.getElementById('loginPasswordInput');
             const rememberCheckbox = document.getElementById('loginRememberCheckbox');
 
-            const extension = extInput ? extInput.value.trim() : '';
+            const manualWrapper = document.getElementById('loginFieldManualWrapper');
+            const isManual = manualWrapper && manualWrapper.style.display !== 'none';
+            const extension = isManual ? (extInput ? extInput.value.trim() : '') : (extSelect && extSelect.value ? extSelect.value.trim() : (extInput ? extInput.value.trim() : ''));
             const password = passInput ? passInput.value.trim() : '';
             const remember = rememberCheckbox ? rememberCheckbox.checked : true;
 
@@ -5020,8 +5434,9 @@ html.light-theme .vu-meter-label svg {
             if (remember) {
                 presets.forEach(p => p.isDefault = (p.id === preset.id));
                 this.savePresets(presets);
-                this.sessionSecrets.set(preset.id, password);
             }
+            this.sessionSecrets.set(preset.id, password);
+            this.lastSessionPassword = password;
 
             try {
                 const submitBtn = document.getElementById('loginSubmitBtn');
@@ -5034,7 +5449,7 @@ html.light-theme .vu-meter-label svg {
                 const submitBtn = document.getElementById('loginSubmitBtn');
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || 'CONNECT TO EXTENSION ↗') + '</span>';
+                    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || 'CONNECT & LOGIN ↗') + '</span>';
                 }
                 this.showToast(err.message, 'error');
             }
@@ -5045,19 +5460,33 @@ html.light-theme .vu-meter-label svg {
             const preset = presets.find(p => p.id === presetId);
             if (!preset) return;
 
-            let password = preset.secret || this.sessionSecrets.get(preset.id) || '';
+            let password = preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '';
             if (!password) {
+                this.selectAccountForLogin(preset);
+                const passInput = document.getElementById('loginPasswordInput');
+                if (passInput) passInput.focus();
                 const promptMsg = (this.t.loginEnterPasswordForExt || 'Please enter password for extension {ext}').replace('{ext}', preset.extension);
-                password = prompt(promptMsg);
-                if (!password) return;
-                this.sessionSecrets.set(preset.id, password);
+                this.showToast(promptMsg, 'warning');
+                return;
             }
 
+            this.sessionSecrets.set(preset.id, password);
+            this.lastSessionPassword = password;
             const connMsg = (this.t.loginConnectingExt || 'Connecting Ext {ext}...').replace('{ext}', preset.extension);
             this.showToast(connMsg, 'info');
             try {
+                const submitBtn = document.getElementById('loginSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span>' + (this.t.loginConnecting || 'Connecting...') + '</span>';
+                }
                 await this.core.connect(preset, password);
             } catch (err) {
+                const submitBtn = document.getElementById('loginSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || 'CONNECT & LOGIN ↗') + '</span>';
+                }
                 this.showToast(err.message, 'error');
             }
         }
@@ -5182,8 +5611,15 @@ html.light-theme .vu-meter-label svg {
             const extSelect = document.getElementById('loginExtSelect');
 
             if (extInput) extInput.value = preset.extension;
-            if (extSelect) extSelect.value = preset.extension;
-            const secret = preset.secret || this.sessionSecrets.get(preset.id) || '';
+            if (extSelect) {
+                extSelect.value = preset.extension;
+                if (extSelect.value !== preset.extension) {
+                    this.setLoginInputMode('manual');
+                } else {
+                    this.setLoginInputMode('select');
+                }
+            }
+            const secret = preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '';
             if (passInput) passInput.value = secret;
             if (passInput && !secret) passInput.focus();
 
@@ -5191,17 +5627,36 @@ html.light-theme .vu-meter-label svg {
             cards.forEach(c => c.classList.toggle('selected', c.dataset.id === preset.id));
         }
 
-                logout() {
+        logout() {
             this.core.disconnect();
+            this.updateViewMode('login');
             this.showToast(this.t.statusOffline || 'Logged out of extension', 'info');
         }
 
+        switchAccount() {
+            this.logout();
+        }
+
         updateViewMode(mode) {
+            const loginView = document.getElementById('loginView');
             const mainAppWindow = document.getElementById('mainAppWindow');
-            if (mainAppWindow) mainAppWindow.style.display = 'flex';
             const titleEl = document.getElementById('activeAccountHeaderTitle');
-            if (titleEl && this.core.activePreset) {
-                titleEl.textContent = 'Ext ' + this.core.activePreset.extension + (this.core.activePreset.label ? ' - ' + this.core.activePreset.label : '');
+
+            if (mode === 'console') {
+                if (loginView) loginView.style.display = 'none';
+                if (mainAppWindow) mainAppWindow.style.display = 'flex';
+                if (titleEl && this.core.activePreset) {
+                    titleEl.textContent = 'Ext ' + this.core.activePreset.extension + (this.core.activePreset.label ? ' - ' + this.core.activePreset.label : '');
+                }
+            } else {
+                if (loginView) loginView.style.display = 'flex';
+                if (mainAppWindow) mainAppWindow.style.display = 'none';
+                const submitBtn = document.getElementById('loginSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>' + (this.t.loginConnectBtn || (this.currentLang === 'ar' ? 'تسجيل الدخول والاتصال ↗' : 'CONNECT & LOGIN ↗')) + '</span>';
+                }
+                this.renderSavedAccountsLoginList();
             }
         }
 
@@ -5916,6 +6371,30 @@ html.light-theme .vu-meter-label svg {
                 });
             }
 
+            if (this.dom.loginExtSelect) {
+                const currentVal = this.dom.loginExtSelect.value;
+                this.dom.loginExtSelect.textContent = '';
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = this.currentLang === 'ar' ? '-- اختر تحويلة WebRTC --' : '-- Select WebRTC Extension --';
+                this.dom.loginExtSelect.appendChild(defaultOpt);
+
+                const listToUse = (this.serverWebrtcList && this.serverWebrtcList.length > 0) ? this.serverWebrtcList : presets;
+                listToUse.forEach(item => {
+                    const extNum = item.extension;
+                    const opt = document.createElement('option');
+                    opt.value = extNum;
+                    opt.textContent = (item.name && item.name !== extNum) ? `${extNum} - ${item.name} (${item.tech || 'pjsip'})` : `Ext ${extNum} (${item.tech || 'pjsip'})`;
+                    if (currentVal && String(currentVal) === String(extNum)) {
+                        opt.selected = true;
+                    } else if (!currentVal && String(extNum) === '150') {
+                        opt.selected = true;
+                    }
+                    this.dom.loginExtSelect.appendChild(opt);
+                });
+                this.onLoginExtensionSelected();
+            }
+
             this.savePresets(presets);
             this.onPresetChanged();
         }
@@ -6408,7 +6887,9 @@ html.light-theme .vu-meter-label svg {
                 this.updateViewMode('console');
             });
             this.core.on('unregistered', () => {
-                this.updateViewMode('login');
+                if (this.core.activePreset) {
+                    this.updateStatusUi('DISCONNECTED');
+                }
             });
             this.core.on('authFailed', () => {
                 this.updateViewMode('login');
@@ -7144,32 +7625,42 @@ html.light-theme .vu-meter-label svg {
 
         // --- DOM ACTIONS & HOTKEYS ---
         bindDomEvents() {
-            this.dom.presetSelect.addEventListener('change', () => this.onPresetChanged());
-            this.dom.passwordInput.addEventListener('input', () => {
-                const preset = this.getSelectedPreset();
-                if (preset) {
-                    this.sessionSecrets.set(preset.id, this.dom.passwordInput.value);
-                }
-            });
-
-            this.dom.connectBtn.addEventListener('click', async () => {
-                if (this.core.regState === 'REGISTERED' || this.core.regState === 'CONNECTING' || this.core.regState === 'RETRY_WAIT') {
-                    this.core.disconnect();
-                } else {
+            if (this.dom.presetSelect) {
+                this.dom.presetSelect.addEventListener('change', () => this.onPresetChanged());
+            }
+            if (this.dom.passwordInput) {
+                this.dom.passwordInput.addEventListener('input', () => {
                     const preset = this.getSelectedPreset();
-                    const secret = this.dom.passwordInput.value.trim();
-                    if (!preset || !secret) {
-                        this.showToast('Please select account and enter password', 'error');
-                        return;
+                    if (preset) {
+                        this.sessionSecrets.set(preset.id, this.dom.passwordInput.value);
                     }
-                    try {
-                        await this.core.connect(preset, secret);
-                    } catch (err) {
-                        this.showToast(err.message, 'error');
-                    }
-                }
-            });
+                });
+            }
 
+            if (this.dom.connectBtn) {
+                this.dom.connectBtn.addEventListener('click', async () => {
+                    if (this.core.regState === 'REGISTERED' || this.core.regState === 'CONNECTING' || this.core.regState === 'RETRY_WAIT') {
+                        this.core.disconnect();
+                    } else {
+                        const preset = this.getSelectedPreset();
+                        if (!preset) {
+                            this.showToast('Please select account', 'error');
+                            return;
+                        }
+                        const secret = preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || this.core.lastSecret || '';
+                        if (!secret) {
+                            this.showToast(this.t.loginEnterPasswordError || 'Please log in with extension password', 'warning');
+                            this.updateViewMode('login');
+                            return;
+                        }
+                        try {
+                            await this.core.connect(preset, secret);
+                        } catch (err) {
+                            this.showToast(err.message, 'error');
+                        }
+                    }
+                });
+            }
             this.dom.callBtn.addEventListener('click', () => this.handleCallAction());
             this.setupDialHistorySeeking(this.dom.dialInput, 'line1');
             this.dom.dialInput.addEventListener('keydown', (e) => {
@@ -8092,15 +8583,14 @@ html.light-theme .vu-meter-label svg {
 
                     // Check if credentials are present to auto-connect
                     const preset = this.getSelectedPreset();
-                    const secret = (this.dom.passwordInput ? this.dom.passwordInput.value.trim() : '') || (preset ? (preset.secret || this.sessionSecrets.get(preset.id) || '') : '');
+                    const secret = (preset ? (preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '') : '');
 
                     if (preset && secret && (this.core.regState === 'DISCONNECTED' || !this.core.ua)) {
                         this.showToast(`Connecting Ext ${preset.extension} to call ${cleanNum}...`, 'info');
-                        if (this.dom.passwordInput) this.dom.passwordInput.value = secret;
                         if (this.dom.connectBtn) this.dom.connectBtn.click();
-                    } else if (!secret && this.dom.passwordInput) {
-                        this.dom.passwordInput.focus();
-                        this.showToast(`Enter password to call ${cleanNum}`, 'warning');
+                    } else if (!secret) {
+                        this.updateViewMode('login');
+                        this.showToast(`Log in to call ${cleanNum}`, 'warning');
                     } else {
                         this.showToast(`Click-to-call: ${cleanNum}`, 'info');
                     }
