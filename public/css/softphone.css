@@ -388,8 +388,11 @@ body.is-popout .app-window, html.is-popout .app-window {
     display: flex;
     align-items: center;
     gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    flex: 1;
+    min-width: 0;
     flex-wrap: nowrap !important;
-    flex-shrink: 0;
     min-height: 32px;
 }
 
@@ -401,25 +404,33 @@ body.is-popout .app-window, html.is-popout .app-window {
     background: var(--bg-input);
     color: var(--text-primary);
     border: 1px solid var(--border-primary);
-    padding: 0 8px;
+    padding: 0 6px;
     border-radius: var(--radius-sm);
     outline: none;
-    flex-shrink: 0;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: auto !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .header-status-strip input.input-text {
     height: 32px;
     line-height: 32px;
     font-size: 11px;
-    padding: 0 8px;
+    padding: 0 6px;
     flex-shrink: 0;
 }
 
 .header-status-strip .btn {
     height: 32px;
-    padding: 0 12px;
+    padding: 0 10px;
     font-size: 11px;
+    font-weight: 700;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .header-status-strip .header-action-btn {
@@ -431,7 +442,7 @@ body.is-popout .app-window, html.is-popout .app-window {
     align-items: center !important;
     justify-content: center !important;
     vertical-align: middle !important;
-    padding: 0 10px !important;
+    padding: 0 8px !important;
     font-size: 11px;
     font-weight: 700;
     background: var(--bg-card-subtle);
@@ -441,7 +452,7 @@ body.is-popout .app-window, html.is-popout .app-window {
     cursor: pointer;
     flex-shrink: 0;
     white-space: nowrap;
-    gap: 5px;
+    gap: 4px;
     transition: all 0.15s ease;
 }
 .header-status-strip .header-action-btn:hover {
@@ -454,9 +465,9 @@ body.is-popout .app-window, html.is-popout .app-window {
     height: 32px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 0 10px;
-    font-size: 11px;
+    gap: 4px;
+    padding: 0 8px;
+    font-size: 10.5px;
     font-weight: 700;
     border-radius: var(--radius-sm);
     background: var(--bg-card-subtle);
@@ -465,7 +476,6 @@ body.is-popout .app-window, html.is-popout .app-window {
     flex-shrink: 0;
     white-space: nowrap;
 }
-
 .status-pill.online {
     background: rgba(16, 185, 129, 0.15);
     border-color: rgba(16, 185, 129, 0.3);
@@ -1836,9 +1846,9 @@ html.light-theme .recent-call-btn {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: nowrap !important;
-    padding: 8px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border-primary);
     background: var(--bg-primary);
     margin-bottom: 0;
@@ -1853,17 +1863,18 @@ html.light-theme .recent-call-btn {
 .header-line1-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .header-line2-controls {
     display: none;
     align-items: center;
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     gap: 6px;
-    padding-left: 12px;
-    border-left: 1px solid var(--border-primary);
-    flex-shrink: 0;
 }
 
 .app-window.is-split-view .header-line2-controls,
