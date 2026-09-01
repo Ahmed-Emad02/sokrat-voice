@@ -1104,15 +1104,27 @@
                 contactRow.className = 'hero-contact-row';
                 const avatarInfo = document.createElement('div');
                 avatarInfo.className = 'hero-avatar-info';
+                const contactMatch = this.findContactByNumber(call.target) || this.findContactByNumber(call.displayName);
                 const avatar = document.createElement('div');
                 avatar.className = 'hero-avatar font-mono font-bold';
-                avatar.textContent = (call.target || 'L2').slice(-2);
+                const avatarChar = contactMatch && contactMatch.name ? contactMatch.name.trim().charAt(0) : (call.target || 'L2').slice(-2);
+                avatar.textContent = avatarChar.toUpperCase();
                 const nameSpan = document.createElement('div');
                 nameSpan.className = 'hero-name font-mono';
-                nameSpan.textContent = `Ext ${call.target}`;
-
-                avatarInfo.appendChild(avatar);
-                avatarInfo.appendChild(nameSpan);
+                nameSpan.style.fontWeight = '800';
+                if (contactMatch) {
+                    nameSpan.textContent = contactMatch.name;
+                    const numDiv = document.createElement('div');
+                    numDiv.className = 'text-xs text-muted font-mono';
+                    numDiv.textContent = call.target || call.displayName;
+                    avatarInfo.appendChild(avatar);
+                    avatarInfo.appendChild(nameSpan);
+                    avatarInfo.appendChild(numDiv);
+                } else {
+                    nameSpan.textContent = (call.target && !call.target.startsWith('Ext')) ? (call.target.length <= 4 ? `Ext ${call.target}` : call.target) : (call.target || 'Line 2 Call');
+                    avatarInfo.appendChild(avatar);
+                    avatarInfo.appendChild(nameSpan);
+                }
                 contactRow.appendChild(avatarInfo);
 
                 const timerEl = document.createElement('div');
@@ -2136,28 +2148,28 @@
                 const avatarInfo = document.createElement('div');
                 avatarInfo.className = 'hero-avatar-info';
 
+                const contactMatch = this.findContactByNumber(call.target) || this.findContactByNumber(call.displayName);
                 const avatar = document.createElement('div');
                 avatar.className = 'hero-avatar';
-                avatar.textContent = (call.target || 'A').charAt(0).toUpperCase();
+                const avatarChar = contactMatch && contactMatch.name ? contactMatch.name.trim().charAt(0) : (call.target || 'A').charAt(0);
+                avatar.textContent = avatarChar.toUpperCase();
 
                 const nameCol = document.createElement('div');
                 const nameDiv = document.createElement('div');
-                nameDiv.className = 'hero-name font-mono';
-                nameDiv.textContent = call.target;
+                nameDiv.className = 'hero-name';
+                nameDiv.style.fontWeight = '800';
 
-                // Look up contact name
-                const contactMatch = this.findContactByNumber(call.target);
                 if (contactMatch) {
                     nameDiv.textContent = contactMatch.name;
                     const numDiv = document.createElement('div');
                     numDiv.className = 'text-xs text-muted font-mono';
-                    numDiv.textContent = call.target;
+                    numDiv.textContent = call.target || call.displayName;
                     nameCol.appendChild(nameDiv);
                     nameCol.appendChild(numDiv);
                 } else {
+                    nameDiv.textContent = call.target || call.displayName || (this.currentLang === 'ar' ? 'مكالمة واردة' : 'Incoming Call');
                     nameCol.appendChild(nameDiv);
                 }
-
                 const timerDiv = document.createElement('div');
                 timerDiv.className = 'hero-timer font-mono';
                 if (call.answerTime) {
@@ -2350,10 +2362,10 @@
             this.dismissNotification();
 
             const callerName = callEntry.target || callEntry.displayName || 'Unknown';
-            const contactMatch = this.findContactByNumber(callerName);
-            const title = 'Incoming Call';
+            const contactMatch = this.findContactByNumber(callerName) || this.findContactByNumber(callEntry.displayName);
+            const isAr = this.currentLang === 'ar';
+            const title = isAr ? 'مكالمة واردة' : 'Incoming Call';
             const body = contactMatch ? `${contactMatch.name} (${callerName})` : callerName;
-
             try {
                 this.incomingNotification = new Notification(title, {
                     body: body,
@@ -2628,16 +2640,28 @@
                 const left = document.createElement('div');
                 left.className = 'recent-left';
 
+                const contactMatch = this.findContactByNumber(log.target);
                 const avatar = document.createElement('div');
                 avatar.className = 'recent-avatar';
-                avatar.textContent = (log.target || 'U').charAt(0).toUpperCase();
+                const avatarChar = contactMatch && contactMatch.name ? contactMatch.name.trim().charAt(0) : (log.target || 'U').charAt(0);
+                avatar.textContent = avatarChar.toUpperCase();
 
                 const info = document.createElement('div');
                 info.className = 'recent-info';
 
                 const nameSpan = document.createElement('div');
                 nameSpan.className = 'recent-name font-mono';
-                nameSpan.textContent = log.target;
+                if (contactMatch) {
+                    nameSpan.textContent = contactMatch.name;
+                    const numDiv = document.createElement('div');
+                    numDiv.className = 'text-xs text-muted font-mono';
+                    numDiv.textContent = log.target;
+                    info.appendChild(nameSpan);
+                    info.appendChild(numDiv);
+                } else {
+                    nameSpan.textContent = log.target;
+                    info.appendChild(nameSpan);
+                }
 
                 const dirSpan = document.createElement('div');
                 const isMissed = log.status === 'failed' || log.status === 'busy' || log.status === 'rejected_dnd';
@@ -2645,12 +2669,10 @@
                 const dirArrow = isMissed ? '✕' : (log.direction === 'incoming' ? '↗' : '↙');
                 dirSpan.className = `recent-dir ${dirClass}`;
                 dirSpan.textContent = `${dirArrow} ${this.t[dirClass] || log.status}`;
-
-                info.appendChild(nameSpan);
                 info.appendChild(dirSpan);
+
                 left.appendChild(avatar);
                 left.appendChild(info);
-
                 const right = document.createElement('div');
                 right.className = 'recent-right';
 
@@ -3105,28 +3127,58 @@
         }
 
         // --- CONTACTS / PHONEBOOK ---
+        normalizePhoneNumber(num) {
+            if (!num) return '';
+            let s = String(num).trim().replace(/[\s\-\(\)\.]/g, '');
+            s = s.replace(/^sip:/i, '').split('@')[0];
+            if (s.startsWith('+20') && s.length >= 12) {
+                s = '0' + s.substring(3);
+            } else if (s.startsWith('0020') && s.length >= 13) {
+                s = '0' + s.substring(4);
+            } else if (s.startsWith('+')) {
+                s = s.substring(1);
+            }
+            return s;
+        }
+
         loadContacts() {
-            let contacts;
+            let contacts = [];
             try {
                 contacts = JSON.parse(localStorage.getItem(this.CONTACTS_KEY) || '[]');
             } catch (_) {
                 contacts = [];
             }
-
-            // Auto-populate from server extensions if contacts empty
-            if (contacts.length === 0 && this.serverExtensionsList && this.serverExtensionsList.length > 0) {
-                this.serverExtensionsList.forEach(ext => {
-                    contacts.push({
-                        id: 'ext_' + ext.extension,
-                        name: ext.name && ext.name !== ext.extension ? ext.name : 'Ext ' + ext.extension,
-                        number: String(ext.extension),
-                        isFavorite: false
-                    });
-                });
-                this.saveContacts(contacts);
-            }
-
             this._contacts = contacts;
+
+            // Asynchronously fetch contacts from Sokrat VoIP shared address book
+            const prefix = (typeof window !== 'undefined' && window.location.pathname.startsWith('/phone')) ? '/phone' : '';
+            fetch(`${prefix}/api/contacts`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.contacts)) {
+                        const favSet = new Set(this.getFavorites());
+                        const serverContacts = data.contacts.map(c => ({
+                            id: c.id || ('contact_' + (c.dbId || Date.now())),
+                            dbId: c.dbId,
+                            name: c.name || (c.lastName ? `${c.firstName} ${c.lastName}` : c.firstName) || c.number,
+                            firstName: c.firstName || '',
+                            lastName: c.lastName || '',
+                            number: String(c.number || '').trim(),
+                            isFavorite: favSet.has(String(c.number).trim()),
+                            isExtension: Boolean(c.isExtension)
+                        })).filter(c => Boolean(c.number));
+
+                        this._contacts = serverContacts;
+                        this.saveContacts(serverContacts);
+                        this.renderContacts();
+                        this.renderFavorites();
+                        this.renderLine2Contacts();
+                    }
+                })
+                .catch(err => {
+                    console.warn('[SoftphoneUI] Remote contacts fetch fallback to cache:', err?.message);
+                });
+
             return contacts;
         }
 
@@ -3136,17 +3188,42 @@
         }
 
         getContacts() {
-            if (!this._contacts) this.loadContacts();
+            if (!this._contacts || this._contacts.length === 0) {
+                try {
+                    this._contacts = JSON.parse(localStorage.getItem(this.CONTACTS_KEY) || '[]');
+                } catch (_) {
+                    this._contacts = [];
+                }
+            }
             return this._contacts || [];
         }
 
         findContactByNumber(number) {
             if (!number) return null;
-            const numStr = String(number);
+            const targetClean = this.normalizePhoneNumber(number);
             const contacts = this.getContacts();
-            return contacts.find(c => c.number === numStr) || null;
-        }
+            if (!targetClean) return null;
 
+            // 1. Exact string match
+            let match = contacts.find(c => String(c.number).trim() === String(number).trim());
+            if (match) return match;
+
+            // 2. Normalized match
+            match = contacts.find(c => this.normalizePhoneNumber(c.number) === targetClean);
+            if (match) return match;
+
+            // 3. Suffix match (last 8 digits)
+            if (targetClean.length >= 7) {
+                const targetSuffix = targetClean.slice(-8);
+                match = contacts.find(c => {
+                    const cClean = this.normalizePhoneNumber(c.number);
+                    return cClean.length >= 7 && (cClean.slice(-8) === targetSuffix || cClean.endsWith(targetClean) || targetClean.endsWith(cClean));
+                });
+                if (match) return match;
+            }
+
+            return null;
+        }
         renderContacts(filter) {
             // Find or create the contacts section in the right column
             let section = document.getElementById('contactsSection');
@@ -3422,39 +3499,100 @@
             modal.classList.remove('hidden');
         }
 
-        saveContactFromModal() {
-            const id = document.getElementById('contactIdInput').value || ('contact_' + Date.now());
+        async saveContactFromModal() {
+            const id = document.getElementById('contactIdInput').value;
             const name = document.getElementById('contactNameInput').value.trim();
             const number = document.getElementById('contactNumberInput').value.trim();
 
             if (!name || !number) {
-                this.showToast('Name and number are required', 'error');
+                this.showToast(this.currentLang === 'ar' ? 'الاسم ورقم الهاتف مطلوبان' : 'Name and number are required', 'error');
                 return;
             }
 
+            const isEdit = Boolean(id);
+            const prefix = (typeof window !== 'undefined' && window.location.pathname.startsWith('/phone')) ? '/phone' : '';
+            const endpoint = isEdit ? `${prefix}/api/contacts/edit` : `${prefix}/api/contacts/add`;
+
+            let firstName = name;
+            let lastName = '';
+            const spaceIdx = name.indexOf(' ');
+            if (spaceIdx > 0) {
+                firstName = name.substring(0, spaceIdx).trim();
+                lastName = name.substring(spaceIdx + 1).trim();
+            }
+
+            try {
+                const resp = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id,
+                        firstName,
+                        lastName,
+                        name,
+                        number,
+                        phone: number
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    this.showToast(this.currentLang === 'ar' ? 'تم حفظ جهة الاتصال في دليل Sokrat VoIP' : 'Contact saved to Sokrat VoIP address book', 'success');
+                }
+            } catch (err) {
+                console.warn('[SoftphoneUI] Failed to save contact to server:', err?.message);
+            }
+
             let contacts = this.getContacts();
-            const existingIdx = contacts.findIndex(c => c.id === id);
+            const existingIdx = contacts.findIndex(c => c.id === id || (id && c.dbId && `contact_${c.dbId}` === id));
 
             if (existingIdx >= 0) {
                 contacts[existingIdx].name = name;
+                contacts[existingIdx].firstName = firstName;
+                contacts[existingIdx].lastName = lastName;
                 contacts[existingIdx].number = number;
             } else {
-                contacts.push({ id: id, name: name, number: number, isFavorite: false });
+                contacts.push({
+                    id: id || ('contact_' + Date.now()),
+                    name: name,
+                    firstName: firstName,
+                    lastName: lastName,
+                    number: number,
+                    isFavorite: false
+                });
             }
 
             this.saveContacts(contacts);
             document.getElementById('contactModal').classList.add('hidden');
             this.renderFavorites();
             this.renderContacts();
-            this.showToast('Contact saved', 'success');
+            this.renderLine2Contacts();
+
+            setTimeout(() => this.loadContacts(), 400);
         }
 
-        deleteContact(id) {
-            let contacts = this.getContacts().filter(c => c.id !== id);
+        async deleteContact(id) {
+            const isAr = this.currentLang === 'ar';
+            if (!confirm(isAr ? 'هل أنت متأكد من حذف جهة الاتصال؟' : 'Are you sure you want to delete this contact?')) {
+                return;
+            }
+
+            const prefix = (typeof window !== 'undefined' && window.location.pathname.startsWith('/phone')) ? '/phone' : '';
+            try {
+                await fetch(`${prefix}/api/contacts/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+            } catch (err) {
+                console.warn('[SoftphoneUI] Server delete failed:', err?.message);
+            }
+
+            let contacts = this.getContacts().filter(c => c.id !== id && `contact_${c.dbId}` !== id);
             this.saveContacts(contacts);
             this.renderFavorites();
             this.renderContacts();
-            this.showToast('Contact deleted', 'info');
+            this.renderLine2Contacts();
+            this.showToast(isAr ? 'تم حذف جهة الاتصال' : 'Contact deleted', 'info');
         }
 
         // --- SPEED DIAL / FAVORITES ---

@@ -950,6 +950,7 @@
             session.on('confirmed', () => {
                 this.stopRingtone();
                 this.stopRingback();
+                this.stopTrunkPoller();
                 if (callEntry.progressTimer) {
                     clearTimeout(callEntry.progressTimer);
                     callEntry.progressTimer = null;
@@ -1077,17 +1078,25 @@
         // since chan_dongle won't signal it back via SIP.
         startTrunkPoller(callEntry) {
             this.stopTrunkPoller();
+            const pathParts = (typeof window !== 'undefined' && window.location && window.location.pathname)
+                ? window.location.pathname.split('/').filter(Boolean)
+                : [];
+            const prefix = (pathParts.length > 0 && ['phone', 'standalone-softphone'].includes(pathParts[0]))
+                ? '/' + pathParts[0] + '/'
+                : '/';
+            const ext = callEntry.caller || (this.currentPreset ? this.currentPreset.extension : '150');
+            const apiUrl = `${prefix}api/trunk-call-state?ext=${encodeURIComponent(ext)}`;
+
             // Wait 3 s before first poll — let Dial() establish the trunk channel
             this._trunkPollDelay = setTimeout(() => {
                 this._trunkPoller = setInterval(async () => {
                     try {
-                        const base = (typeof window !== 'undefined' && window.location)
-                            ? window.location.pathname.replace(/\/[^/]*$/, '/')
-                            : '/';
-                        const resp = await fetch(base + 'api/trunk-call-state');
+                        const resp = await fetch(apiUrl);
+                        if (!resp.ok) return;
                         const data = await resp.json();
-                        // Caller channel is up but trunk is gone → callee declined
-                        if (data.callerActive && !data.trunkActive) {
+                        // Only auto-terminate if call is still in progress (not answered/ended)
+                        // and caller channel is active but trunk channel dropped
+                        if (callEntry.status === 'progress' && data.callerActive && !data.trunkActive) {
                             this.stopTrunkPoller();
                             const isAr = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'ar');
                             this.emit('toast', {
@@ -1097,7 +1106,9 @@
                             try { callEntry.session.terminate(); } catch (_) {}
                             this.handleCallEnd(callEntry, 'declined');
                         }
-                    } catch (_) {}
+                    } catch (e) {
+                        console.warn('[TrunkPoller] fetch failed:', apiUrl, e?.message);
+                    }
                 }, 2000);
             }, 3000);
         }

@@ -44,54 +44,32 @@ async function fetchPbxExtensions() {
     let allExtensions = [];
     let webrtcExtensions = [];
 
-    if (mysql) {
-        try {
-            const conn = await mysql.createConnection({
-                host: process.env.DB_HOST || '127.0.0.1',
-                user: process.env.DB_USER || 'root',
-                password: process.env.DB_PASS || 'admin',
-                database: process.env.ASTERISK_DB || 'asterisk'
+    try {
+        const cmdAll = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT u.extension, u.name, COALESCE(d.tech, 'sip') FROM users u LEFT JOIN devices d ON d.id = u.extension ORDER BY CAST(u.extension AS UNSIGNED) ASC;" 2>/dev/null`;
+        const { stdout: outAll } = await execAsync(cmdAll, { timeout: 3000 });
+        if (outAll && outAll.trim()) {
+            allExtensions = outAll.trim().split('\n').filter(Boolean).map(line => {
+                const [extension, name, tech] = line.split('\t');
+                return { extension, name: name || extension, tech: tech || 'sip' };
             });
+        }
 
-            // 1. Fetch All PBX Extensions (for Transfer and Contacts Directory)
-            const [allRows] = await conn.execute(`
-                SELECT u.extension, u.name, COALESCE(d.tech, 'sip') AS tech
-                FROM users u
-                LEFT JOIN devices d ON d.id = u.extension
-                ORDER BY CAST(u.extension AS UNSIGNED) ASC
-            `);
-            allExtensions = allRows.map(r => ({
-                extension: String(r.extension),
-                name: r.name || String(r.extension),
-                tech: r.tech || 'sip'
-            }));
+        const cmdWeb = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT DISTINCT u.extension, u.name, COALESCE(d.tech, 'pjsip') FROM users u LEFT JOIN devices d ON d.id = u.extension LEFT JOIN sip s_trans ON s_trans.id = u.extension AND s_trans.keyword = 'transport' LEFT JOIN sip s_avpf ON s_avpf.id = u.extension AND s_avpf.keyword = 'avpf' LEFT JOIN sip s_webrtc ON s_webrtc.id = u.extension AND s_webrtc.keyword = 'webrtc' WHERE (d.tech = 'pjsip' OR s_trans.data LIKE '%ws%' OR s_avpf.data = 'yes' OR s_webrtc.data = 'yes') ORDER BY CAST(u.extension AS UNSIGNED) ASC;" 2>/dev/null`;
+        const { stdout: outWeb } = await execAsync(cmdWeb, { timeout: 3000 });
+        if (outWeb && outWeb.trim()) {
+            webrtcExtensions = outWeb.trim().split('\n').filter(Boolean).map(line => {
+                const [extension, name, tech] = line.split('\t');
+                return { extension, name: name || extension, tech: tech || 'pjsip' };
+            });
+        }
 
-            // 2. Fetch WebRTC-Capable Extensions (for Registration)
-            const [webrtcRows] = await conn.execute(`
-                SELECT DISTINCT u.extension, u.name, COALESCE(d.tech, 'pjsip') AS tech
-                FROM users u
-                LEFT JOIN devices d ON d.id = u.extension
-                LEFT JOIN sip s_trans ON s_trans.id = u.extension AND s_trans.keyword = 'transport'
-                LEFT JOIN sip s_avpf ON s_avpf.id = u.extension AND s_avpf.keyword = 'avpf'
-                LEFT JOIN sip s_webrtc ON s_webrtc.id = u.extension AND s_webrtc.keyword = 'webrtc'
-                WHERE (
-                    d.tech = 'pjsip' 
-                    OR s_trans.data LIKE '%ws%' 
-                    OR s_avpf.data = 'yes' 
-                    OR s_webrtc.data = 'yes'
-                )
-                ORDER BY CAST(u.extension AS UNSIGNED) ASC
-            `);
-            webrtcExtensions = webrtcRows.map(r => ({
-                extension: String(r.extension),
-                name: r.name || String(r.extension),
-                tech: r.tech || 'pjsip'
-            }));
-
-            await conn.end();
+        if (allExtensions.length > 0) {
+            if (webrtcExtensions.length === 0) {
+                webrtcExtensions = allExtensions.filter(e => e.tech === 'pjsip');
+            }
             return { allExtensions, webrtcExtensions };
-        } catch (_) {}
-    }
+        }
+    } catch (_) {}
 
     // Fallback to Asterisk CLI parsing
     return new Promise((resolve) => {
@@ -221,25 +199,230 @@ app.get(['/api/extension-policy/:ext', '/phone/api/extension-policy/:ext'], asyn
     if (!ext) return res.json({ success: true, policy: { extension: '', auto_answer: 'user_choice', dnd: 'user_choice' } });
 
     let policy = { extension: ext, auto_answer: 'user_choice', dnd: 'user_choice' };
-    if (mysql) {
-        try {
-            const conn = await mysql.createConnection({
-                host: process.env.DB_HOST || '127.0.0.1',
-                user: process.env.DB_USER || 'root',
-                password: process.env.DB_PASS || 'admin',
-                database: process.env.ASTERISK_DB || 'asterisk'
-            });
-            const [rows] = await conn.execute(
-                'SELECT extension, auto_answer, dnd FROM extension_policies WHERE extension = ?',
-                [ext]
-            );
-            await conn.end();
-            if (rows && rows.length > 0) {
-                policy = rows[0];
-            }
-        } catch (_) {}
-    }
+    try {
+        const safeExt = ext.replace(/[^0-9A-Za-z_-]/g, '');
+        const cmd = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT extension, auto_answer, dnd FROM extension_policies WHERE extension = '${safeExt}'" 2>/dev/null`;
+        const { stdout } = await execAsync(cmd, { timeout: 3000 });
+        if (stdout && stdout.trim()) {
+            const [extension, auto_answer, dnd] = stdout.trim().split('\t');
+            policy = { extension, auto_answer: auto_answer || 'user_choice', dnd: dnd || 'user_choice' };
+        }
+    } catch (_) {}
     res.json({ success: true, policy });
+});
+
+// --- SOKRAT VOIP SHARED ADDRESS BOOK API (SQLite address_book.db) ---
+const SQLITE_DB_PATH = '/var/www/db/address_book.db';
+
+function escapeSql(str) {
+    return String(str || '').replace(/'/g, "''").trim();
+}
+
+async function runSqliteCmd(sql) {
+    const cmd = `/usr/bin/sqlite3 "${SQLITE_DB_PATH}" "${sql.replace(/"/g, '\\"')}"`;
+    return await execAsync(cmd, { timeout: 4000 });
+}
+
+async function runSqliteQuery(sql) {
+    const cmd = `/usr/bin/sqlite3 -separator '~~~' "${SQLITE_DB_PATH}" "${sql.replace(/"/g, '\\"')}"`;
+    const { stdout } = await execAsync(cmd, { timeout: 4000 });
+    return stdout || '';
+}
+
+// 1. GET Contacts
+app.get(['/api/contacts', '/phone/api/contacts'], async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    try {
+        const stdout = await runSqliteQuery("SELECT id, name, last_name, telefono FROM contact ORDER BY name ASC, last_name ASC;");
+        const lines = stdout.split('\n').filter(Boolean);
+        const contacts = lines.map(line => {
+            const parts = line.split('~~~');
+            const id = parts[0] || '';
+            const firstName = parts[1] || '';
+            const lastName = parts[2] || '';
+            const phone = parts[3] || '';
+            const fullName = (lastName ? `${firstName} ${lastName}` : firstName).trim();
+            return {
+                id: `contact_${id}`,
+                dbId: parseInt(id, 10),
+                name: fullName || phone,
+                firstName,
+                lastName,
+                number: phone,
+                isFavorite: false
+            };
+        });
+
+        // Also fetch PBX extensions to include directory extensions
+        const { allExtensions } = await fetchPbxExtensions();
+        const seenNumbers = new Set(contacts.map(c => c.number));
+        allExtensions.forEach(ext => {
+            const numStr = String(ext.extension);
+            if (!seenNumbers.has(numStr)) {
+                contacts.push({
+                    id: `ext_${numStr}`,
+                    name: ext.name && ext.name !== ext.extension ? ext.name : `Ext ${numStr}`,
+                    firstName: ext.name || `Ext ${numStr}`,
+                    lastName: '',
+                    number: numStr,
+                    isFavorite: false,
+                    isExtension: true
+                });
+            }
+        });
+
+        res.json({ success: true, contacts });
+    } catch (err) {
+        console.error('[Contacts API] Error fetching contacts:', err.message);
+        res.json({ success: false, error: err.message, contacts: [] });
+    }
+});
+
+// 2. ADD Contact
+app.post(['/api/contacts/add', '/phone/api/contacts/add', '/api/contacts', '/phone/api/contacts'], async (req, res) => {
+    try {
+        let { firstName, lastName, name, phone, number } = req.body || {};
+        const rawName = String(name || firstName || '').trim();
+        const rawPhone = String(phone || number || '').trim();
+
+        if (!rawName || !rawPhone) {
+            return res.status(400).json({ success: false, error: 'Name and phone number are required' });
+        }
+
+        let fName = firstName ? String(firstName).trim() : '';
+        let lName = lastName ? String(lastName).trim() : '';
+        if (!fName && rawName) {
+            const spaceIdx = rawName.indexOf(' ');
+            if (spaceIdx > 0) {
+                fName = rawName.substring(0, spaceIdx).trim();
+                lName = rawName.substring(spaceIdx + 1).trim();
+            } else {
+                fName = rawName;
+            }
+        }
+
+        const cleanedPhone = rawPhone.replace(/[\s\-\(\)\.]/g, '');
+        let finalPhone = cleanedPhone;
+        if (/^\d+$/.test(cleanedPhone) && !cleanedPhone.startsWith('0') && cleanedPhone.length >= 7 && cleanedPhone.length <= 11) {
+            finalPhone = '0' + cleanedPhone;
+        }
+
+        const fEsc = escapeSql(fName);
+        const lEsc = escapeSql(lName);
+        const pEsc = escapeSql(finalPhone);
+
+        const sql = `INSERT INTO contact (name, last_name, telefono, iduser, status, directory) VALUES ('${fEsc}', '${lEsc}', '${pEsc}', 1, 'isPublic', 'external');`;
+        await runSqliteCmd(sql);
+
+        const lastIdOut = await runSqliteQuery("SELECT last_insert_rowid();");
+        const dbId = parseInt(lastIdOut.trim(), 10) || Date.now();
+
+        const fullName = (lName ? `${fName} ${lName}` : fName).trim();
+        res.json({
+            success: true,
+            message: 'Contact added to Sokrat VoIP address book successfully.',
+            contact: {
+                id: `contact_${dbId}`,
+                dbId,
+                name: fullName,
+                firstName: fName,
+                lastName: lName,
+                number: finalPhone,
+                isFavorite: false
+            }
+        });
+    } catch (err) {
+        console.error('[Contacts API] Error adding contact:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3. EDIT Contact
+app.post(['/api/contacts/edit', '/phone/api/contacts/edit'], async (req, res) => {
+    try {
+        let { id, dbId, firstName, lastName, name, phone, number } = req.body || {};
+        let targetId = dbId;
+        if (!targetId && id) {
+            const parsed = String(id).replace(/^contact_/, '');
+            if (/^\d+$/.test(parsed)) targetId = parseInt(parsed, 10);
+        }
+
+        if (!targetId) {
+            return res.status(400).json({ success: false, error: 'Valid contact ID is required' });
+        }
+
+        const rawName = String(name || firstName || '').trim();
+        const rawPhone = String(phone || number || '').trim();
+
+        if (!rawName || !rawPhone) {
+            return res.status(400).json({ success: false, error: 'Name and phone number are required' });
+        }
+
+        let fName = firstName ? String(firstName).trim() : '';
+        let lName = lastName ? String(lastName).trim() : '';
+        if (!fName && rawName) {
+            const spaceIdx = rawName.indexOf(' ');
+            if (spaceIdx > 0) {
+                fName = rawName.substring(0, spaceIdx).trim();
+                lName = rawName.substring(spaceIdx + 1).trim();
+            } else {
+                fName = rawName;
+            }
+        }
+
+        const cleanedPhone = rawPhone.replace(/[\s\-\(\)\.]/g, '');
+        let finalPhone = cleanedPhone;
+        if (/^\d+$/.test(cleanedPhone) && !cleanedPhone.startsWith('0') && cleanedPhone.length >= 7 && cleanedPhone.length <= 11) {
+            finalPhone = '0' + cleanedPhone;
+        }
+
+        const fEsc = escapeSql(fName);
+        const lEsc = escapeSql(lName);
+        const pEsc = escapeSql(finalPhone);
+
+        const sql = `UPDATE contact SET name = '${fEsc}', last_name = '${lEsc}', telefono = '${pEsc}' WHERE id = ${targetId};`;
+        await runSqliteCmd(sql);
+
+        const fullName = (lName ? `${fName} ${lName}` : fName).trim();
+        res.json({
+            success: true,
+            message: 'Contact updated in Sokrat VoIP address book successfully.',
+            contact: {
+                id: `contact_${targetId}`,
+                dbId: targetId,
+                name: fullName,
+                firstName: fName,
+                lastName: lName,
+                number: finalPhone,
+                isFavorite: false
+            }
+        });
+    } catch (err) {
+        console.error('[Contacts API] Error updating contact:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 4. DELETE Contact
+app.post(['/api/contacts/delete', '/phone/api/contacts/delete'], async (req, res) => {
+    try {
+        let { id, dbId } = req.body || {};
+        let targetId = dbId;
+        if (!targetId && id) {
+            const parsed = String(id).replace(/^contact_/, '');
+            if (/^\d+$/.test(parsed)) targetId = parseInt(parsed, 10);
+        }
+
+        if (targetId) {
+            const sql = `DELETE FROM contact WHERE id = ${targetId};`;
+            await runSqliteCmd(sql);
+        }
+
+        res.json({ success: true, message: 'Contact deleted from Sokrat VoIP address book successfully.' });
+    } catch (err) {
+        console.error('[Contacts API] Error deleting contact:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // Main Standalone Softphone Interface with Server-Side Pre-rendered Extensions
@@ -266,60 +449,41 @@ app.get(['/', '/phone'], async (req, res) => {
     });
 });
 
-// Trunk Call State — query GSM modem directly via AT+CLCC.
-// chan_dongle's device state and Asterisk channels stay alive after callee
-// decline, but the modem itself reports no active calls via AT+CLCC.
-const LOG_FILE = '/var/log/asterisk/messages';
-
-async function isDongleCallActive(dongle) {
-    try {
-        const fs = require('fs');
-        const bytesBefore = fs.statSync(LOG_FILE).size;
-        await execAsync(
-            `/usr/sbin/asterisk -rx "dongle cmd ${dongle} AT+CLCC" 2>/dev/null`,
-            { timeout: 3000 }
-        );
-        // Wait for modem to respond and Asterisk to log it
-        await new Promise(r => setTimeout(r, 800));
-        const bytesAfter = fs.statSync(LOG_FILE).size;
-        if (bytesAfter <= bytesBefore) return false;
-        const fd = fs.openSync(LOG_FILE, 'r');
-        const buf = Buffer.alloc(bytesAfter - bytesBefore);
-        fs.readSync(fd, buf, 0, buf.length, bytesBefore);
-        fs.closeSync(fd);
-        return buf.toString().includes('+CLCC:');
-    } catch (_) {
-        return false;
-    }
-}
-
+// Trunk Call State — query Asterisk channels and GSM dongle state directly
 app.get(['/api/trunk-call-state', '/phone/api/trunk-call-state'], async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-        // Query the GSM modem directly via AT+CLCC (List Current Calls).
-        // This bypasses chan_dongle's broken state machine.
-        const fs = require('fs');
-        const bytesBefore = fs.statSync(LOG_FILE).size;
-        await execAsync(
-            '/usr/sbin/asterisk -rx "dongle cmd dongle0 AT+CLCC" 2>/dev/null',
-            { timeout: 3000 }
-        );
-        await new Promise(r => setTimeout(r, 600));
-        const bytesAfter = fs.statSync(LOG_FILE).size;
-        let trunkActive = false;
-        if (bytesAfter > bytesBefore) {
-            const fd = fs.openSync(LOG_FILE, 'r');
-            const buf = Buffer.alloc(Math.min(bytesAfter - bytesBefore, 4096));
-            fs.readSync(fd, buf, 0, buf.length, bytesBefore);
-            fs.closeSync(fd);
-            trunkActive = buf.toString().includes('+CLCC:');
-        }
-        // Check PJSIP/150 channel
+        const ext = req.query.ext || '';
         const { stdout: chans } = await execAsync(
             '/usr/sbin/asterisk -rx "core show channels concise" 2>/dev/null',
             { timeout: 3000 }
         );
-        const callerActive = (chans || '').split('\n').some(l => l.startsWith('PJSIP/150-'));
+        const channelLines = (chans || '').split('\n').filter(Boolean);
+
+        let callerActive = false;
+        if (ext) {
+            callerActive = channelLines.some(l => l.startsWith(`PJSIP/${ext}-`));
+        } else {
+            callerActive = channelLines.some(l => l.startsWith('PJSIP/'));
+        }
+
+        let trunkActive = channelLines.some(l => l.toLowerCase().startsWith('dongle/'));
+
+        if (!trunkActive) {
+            try {
+                const { stdout: dongleState } = await execAsync(
+                    '/usr/sbin/asterisk -rx "dongle show device state dongle0" 2>/dev/null',
+                    { timeout: 3000 }
+                );
+                const activeMatch = dongleState.match(/Active\s*:\s*([1-9]\d*)/);
+                const dialingMatch = dongleState.match(/Dialing\s*:\s*([1-9]\d*)/);
+                const alertingMatch = dongleState.match(/Alerting\s*:\s*([1-9]\d*)/);
+                if (activeMatch || dialingMatch || alertingMatch) {
+                    trunkActive = true;
+                }
+            } catch (_) {}
+        }
+
         const result = { callerActive, trunkActive };
         console.log('[trunk-call-state]', JSON.stringify(result));
         res.json(result);
