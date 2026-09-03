@@ -308,8 +308,17 @@
                     for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
                     const avg = sum / dataArray.length;
                     const level = Math.min(100, Math.round((avg / 128) * 100));
+
+                    const bins = [];
+                    const step = Math.max(1, Math.floor(dataArray.length / 8));
+                    for (let b = 0; b < 8; b++) {
+                        const val = dataArray[b * step] || 0;
+                        bins.push(Math.min(100, Math.round((val / 255) * 100)));
+                    }
+
                     this.emit('vuLevel', level);
-                }, 75);
+                    this.emit('micSpectrum', { level, bins });
+                }, 60);
             } catch (_) {}
         }
 
@@ -330,8 +339,17 @@
                     for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
                     const avg = sum / dataArray.length;
                     const level = Math.min(100, Math.round((avg / 128) * 100));
+
+                    const bins = [];
+                    const step = Math.max(1, Math.floor(dataArray.length / 8));
+                    for (let b = 0; b < 8; b++) {
+                        const val = dataArray[b * step] || 0;
+                        bins.push(Math.min(100, Math.round((val / 255) * 100)));
+                    }
+
                     this.emit('speakerLevel', level);
-                }, 75);
+                    this.emit('speakerSpectrum', { level, bins });
+                }, 60);
             } catch (_) {}
         }
 
@@ -342,6 +360,7 @@
             }
             this.speakerAnalyser = null;
             this.emit('speakerLevel', 0);
+            this.emit('speakerSpectrum', { level: 0, bins: [0, 0, 0, 0, 0, 0, 0, 0] });
         }
 
         stopVuMeter() {
@@ -351,8 +370,8 @@
             }
             this.vuAnalyser = null;
             this.emit('vuLevel', 0);
+            this.emit('micSpectrum', { level: 0, bins: [0, 0, 0, 0, 0, 0, 0, 0] });
         }
-
         async setOutputDevice(deviceId) {
             this.selectedAudioOutputId = deviceId;
             if (this.remoteAudioEl && typeof this.remoteAudioEl.setSinkId === 'function') {

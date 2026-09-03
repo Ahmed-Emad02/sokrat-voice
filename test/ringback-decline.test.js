@@ -329,16 +329,12 @@ test('6. Microphone and Speaker Volume Controls over VU Meters', () => {
     assert.equal(core.micVolume, 60);
     assert.deepEqual(micEvent, { volume: 60 });
 
-    // Parity: check volume slider IDs in index.ejs and softphone-ui.js
-    assert.match(ejsContent, /id="micVolumeSlider"/);
-    assert.match(ejsContent, /id="speakerVolumeSlider"/);
-    assert.match(uiJsContent, /id="line2MicVolumeSlider"/);
-    assert.match(uiJsContent, /id="line2SpeakerVolumeSlider"/);
-
-    // Parity: check slider CSS classes
-    assert.match(cssContent, /\.vu-volume-slider/);
-    assert.match(ejsContent, /\.vu-volume-slider/);
-
+    // Parity: check active call audio deck and segmented volume controls
+    assert.match(ejsContent, /\.hero-audio-deck/);
+    assert.match(uiJsContent, /createHeroAudioDeck/);
+    assert.match(cssContent, /\.segmented-vol-control/);
+    assert.match(cssContent, /\.vu-spectrum-wrap/);
+    assert.match(ejsContent, /\.segmented-vol-control/);
     core.destroy();
 });
 

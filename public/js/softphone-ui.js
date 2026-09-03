@@ -262,34 +262,270 @@
         }
 
         initVolumeControls() {
-            const savedMicVol = localStorage.getItem('sokrat_mic_volume') || '100';
-            const savedSpkVol = localStorage.getItem('sokrat_speaker_volume') || '100';
+            const savedMicVol = Number(localStorage.getItem('sokrat_mic_volume')) || 100;
+            const savedSpkVol = Number(localStorage.getItem('sokrat_speaker_volume')) || 100;
 
-            if (this.dom.micVolumeSlider) {
-                this.dom.micVolumeSlider.value = savedMicVol;
-                if (this.dom.micVolumeVal) this.dom.micVolumeVal.textContent = savedMicVol + '%';
-                this.core.setMicVolume(savedMicVol);
-
-                this.dom.micVolumeSlider.addEventListener('input', (e) => {
-                    const val = e.target.value;
-                    if (this.dom.micVolumeVal) this.dom.micVolumeVal.textContent = val + '%';
-                    this.core.setMicVolume(val);
-                    localStorage.setItem('sokrat_mic_volume', val);
-                });
+            this.core.setMicVolume(savedMicVol);
+            this.core.setSpeakerVolume(savedSpkVol);
+            if (this.line2Core) {
+                this.line2Core.setMicVolume(savedMicVol);
+                this.line2Core.setSpeakerVolume(savedSpkVol);
             }
 
-            if (this.dom.speakerVolumeSlider) {
-                this.dom.speakerVolumeSlider.value = savedSpkVol;
-                if (this.dom.speakerVolumeVal) this.dom.speakerVolumeVal.textContent = savedSpkVol + '%';
-                this.core.setSpeakerVolume(savedSpkVol);
-
-                this.dom.speakerVolumeSlider.addEventListener('input', (e) => {
-                    const val = e.target.value;
-                    if (this.dom.speakerVolumeVal) this.dom.speakerVolumeVal.textContent = val + '%';
-                    this.core.setSpeakerVolume(val);
-                    localStorage.setItem('sokrat_speaker_volume', val);
+            const setupSpectrum = (coreInstance) => {
+                if (!coreInstance) return;
+                coreInstance.on('micSpectrum', (data) => {
+                    this.updateSpectrumBars('.mic-spectrum', data?.bins);
                 });
+                coreInstance.on('speakerSpectrum', (data) => {
+                    this.updateSpectrumBars('.spk-spectrum', data?.bins);
+                });
+                coreInstance.on('micVolumeChanged', () => {
+                    this.syncAllVolumeDisplays();
+                });
+                coreInstance.on('speakerVolumeChanged', () => {
+                    this.syncAllVolumeDisplays();
+                });
+            };
+
+            setupSpectrum(this.core);
+            if (this.line2Core) setupSpectrum(this.line2Core);
+        }
+
+        updateMicVolume(val) {
+            const clamped = Math.max(0, Math.min(100, Number(val) || 0));
+            this.core.setMicVolume(clamped);
+            if (this.line2Core) this.line2Core.setMicVolume(clamped);
+            localStorage.setItem('sokrat_mic_volume', clamped);
+            this.syncAllVolumeDisplays();
+        }
+
+        updateSpeakerVolume(val) {
+            const clamped = Math.max(0, Math.min(100, Number(val) || 0));
+            this.core.setSpeakerVolume(clamped);
+            if (this.line2Core) this.line2Core.setSpeakerVolume(clamped);
+            localStorage.setItem('sokrat_speaker_volume', clamped);
+            this.syncAllVolumeDisplays();
+        }
+
+        refreshSegmentedVolumeDisplay(container, micVol, spkVol) {
+            const NUM_SEGMENTS = 12;
+            const micActiveCount = Math.round(((micVol !== undefined ? micVol : (this.core.micVolume || 100)) / 100) * NUM_SEGMENTS);
+            const spkActiveCount = Math.round(((spkVol !== undefined ? spkVol : (this.core.speakerVolume || 100)) / 100) * NUM_SEGMENTS);
+            const actualMic = micVol !== undefined ? micVol : (this.core.micVolume || 100);
+            const actualSpk = spkVol !== undefined ? spkVol : (this.core.speakerVolume || 100);
+
+            const root = container || document;
+            const micTracks = root.querySelectorAll('.mic-vol .vol-segments-track');
+            micTracks.forEach(track => {
+                const segs = track.querySelectorAll('.vol-segment');
+                segs.forEach(seg => {
+                    const idx = Number(seg.dataset.segmentIndex || 0);
+                    seg.classList.toggle('active', idx <= micActiveCount);
+                });
+            });
+            const micBadges = root.querySelectorAll('.mic-vol .vol-pct-badge');
+            micBadges.forEach(b => { b.textContent = `${actualMic}%`; });
+
+            const spkTracks = root.querySelectorAll('.spk-vol .vol-segments-track');
+            spkTracks.forEach(track => {
+                const segs = track.querySelectorAll('.vol-segment');
+                segs.forEach(seg => {
+                    const idx = Number(seg.dataset.segmentIndex || 0);
+                    seg.classList.toggle('active', idx <= spkActiveCount);
+                });
+            });
+            const spkBadges = root.querySelectorAll('.spk-vol .vol-pct-badge');
+            spkBadges.forEach(b => { b.textContent = `${actualSpk}%`; });
+        }
+
+        syncAllVolumeDisplays() {
+            this.refreshSegmentedVolumeDisplay(document, this.core.micVolume || 100, this.core.speakerVolume || 100);
+        }
+
+        updateSpectrumBars(containerSelector, bins) {
+            if (!Array.isArray(bins)) return;
+            const spectrumWraps = document.querySelectorAll(containerSelector);
+            spectrumWraps.forEach(wrap => {
+                const bars = wrap.querySelectorAll('.vu-spectrum-bar');
+                bars.forEach((bar, idx) => {
+                    const val = bins[idx] || 0;
+                    const heightPx = Math.max(3, Math.min(18, Math.round((val / 100) * 18)));
+                    bar.style.height = `${heightPx}px`;
+                });
+            });
+        }
+
+        createHeroAudioDeck(call, line = 'line1') {
+            const isAr = this.currentLang === 'ar';
+            const deck = document.createElement('div');
+            deck.className = 'hero-audio-deck';
+            deck.id = `${line}HeroAudioDeck_${call.id}`;
+
+            const NUM_SEGMENTS = 12;
+            const NUM_SPECTRUM_BARS = 8;
+
+            // --- 1. MIC CHANNEL ---
+            const micChan = document.createElement('div');
+            micChan.className = 'hero-audio-channel mic-vol';
+
+            const micLeft = document.createElement('div');
+            micLeft.className = 'hero-audio-channel-left';
+
+            const micLabel = document.createElement('div');
+            micLabel.className = 'hero-audio-label';
+            micLabel.title = isAr ? 'مستوى صوت وحساسية الميكروفون' : 'Microphone Input & Gain';
+            micLabel.innerHTML = `${SVG_ICONS.mic}<span>${isAr ? 'ميك' : 'MIC'}</span>`;
+            micLeft.appendChild(micLabel);
+
+            const micSpectrum = document.createElement('div');
+            micSpectrum.className = 'vu-spectrum-wrap mic-spectrum';
+            micSpectrum.id = `${line}MicSpectrum_${call.id}`;
+            for (let i = 0; i < NUM_SPECTRUM_BARS; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'vu-spectrum-bar';
+                bar.dataset.barIndex = i;
+                micSpectrum.appendChild(bar);
             }
+            micLeft.appendChild(micSpectrum);
+            micChan.appendChild(micLeft);
+
+            const micVolCtrl = document.createElement('div');
+            micVolCtrl.className = 'segmented-vol-control';
+
+            const micMinusBtn = document.createElement('button');
+            micMinusBtn.type = 'button';
+            micMinusBtn.className = 'vol-stepper-btn';
+            micMinusBtn.textContent = '−';
+            micMinusBtn.title = isAr ? 'خفض صوت الميكروفون' : 'Decrease Mic Volume';
+            micVolCtrl.appendChild(micMinusBtn);
+
+            const micTrack = document.createElement('div');
+            micTrack.className = 'vol-segments-track';
+            micTrack.id = `${line}MicTrack_${call.id}`;
+            for (let i = 1; i <= NUM_SEGMENTS; i++) {
+                const seg = document.createElement('div');
+                seg.className = 'vol-segment';
+                seg.dataset.segmentIndex = i;
+                seg.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newVol = Math.round((i / NUM_SEGMENTS) * 100);
+                    this.updateMicVolume(newVol);
+                });
+                micTrack.appendChild(seg);
+            }
+            micVolCtrl.appendChild(micTrack);
+
+            const micPlusBtn = document.createElement('button');
+            micPlusBtn.type = 'button';
+            micPlusBtn.className = 'vol-stepper-btn';
+            micPlusBtn.textContent = '+';
+            micPlusBtn.title = isAr ? 'رفع صوت الميكروفون' : 'Increase Mic Volume';
+            micVolCtrl.appendChild(micPlusBtn);
+
+            const micPctBadge = document.createElement('div');
+            micPctBadge.className = 'vol-pct-badge';
+            micPctBadge.id = `${line}MicPct_${call.id}`;
+            micPctBadge.textContent = `${this.core.micVolume || 100}%`;
+            micVolCtrl.appendChild(micPctBadge);
+
+            micMinusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const cur = this.core.micVolume || 100;
+                this.updateMicVolume(Math.max(0, cur - 10));
+            });
+
+            micPlusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const cur = this.core.micVolume || 100;
+                this.updateMicVolume(Math.min(100, cur + 10));
+            });
+
+            micChan.appendChild(micVolCtrl);
+            deck.appendChild(micChan);
+
+            // --- 2. SPEAKER CHANNEL ---
+            const spkChan = document.createElement('div');
+            spkChan.className = 'hero-audio-channel spk-vol';
+
+            const spkLeft = document.createElement('div');
+            spkLeft.className = 'hero-audio-channel-left';
+
+            const spkLabel = document.createElement('div');
+            spkLabel.className = 'hero-audio-label';
+            spkLabel.title = isAr ? 'مستوى صوت السماعة' : 'Speaker Output & Volume';
+            spkLabel.innerHTML = `${SVG_ICONS.headphones}<span>${isAr ? 'سماعة' : 'SPK'}</span>`;
+            spkLeft.appendChild(spkLabel);
+
+            const spkSpectrum = document.createElement('div');
+            spkSpectrum.className = 'vu-spectrum-wrap spk-spectrum';
+            spkSpectrum.id = `${line}SpkSpectrum_${call.id}`;
+            for (let i = 0; i < NUM_SPECTRUM_BARS; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'vu-spectrum-bar';
+                bar.dataset.barIndex = i;
+                spkSpectrum.appendChild(bar);
+            }
+            spkLeft.appendChild(spkSpectrum);
+            spkChan.appendChild(spkLeft);
+
+            const spkVolCtrl = document.createElement('div');
+            spkVolCtrl.className = 'segmented-vol-control';
+
+            const spkMinusBtn = document.createElement('button');
+            spkMinusBtn.type = 'button';
+            spkMinusBtn.className = 'vol-stepper-btn';
+            spkMinusBtn.textContent = '−';
+            spkMinusBtn.title = isAr ? 'خفض صوت السماعة' : 'Decrease Speaker Volume';
+            spkVolCtrl.appendChild(spkMinusBtn);
+
+            const spkTrack = document.createElement('div');
+            spkTrack.className = 'vol-segments-track';
+            spkTrack.id = `${line}SpkTrack_${call.id}`;
+            for (let i = 1; i <= NUM_SEGMENTS; i++) {
+                const seg = document.createElement('div');
+                seg.className = 'vol-segment';
+                seg.dataset.segmentIndex = i;
+                seg.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newVol = Math.round((i / NUM_SEGMENTS) * 100);
+                    this.updateSpeakerVolume(newVol);
+                });
+                spkTrack.appendChild(seg);
+            }
+            spkVolCtrl.appendChild(spkTrack);
+
+            const spkPlusBtn = document.createElement('button');
+            spkPlusBtn.type = 'button';
+            spkPlusBtn.className = 'vol-stepper-btn';
+            spkPlusBtn.textContent = '+';
+            spkPlusBtn.title = isAr ? 'رفع صوت السماعة' : 'Increase Speaker Volume';
+            spkVolCtrl.appendChild(spkPlusBtn);
+
+            const spkPctBadge = document.createElement('div');
+            spkPctBadge.className = 'vol-pct-badge';
+            spkPctBadge.id = `${line}SpkPct_${call.id}`;
+            spkPctBadge.textContent = `${this.core.speakerVolume || 100}%`;
+            spkVolCtrl.appendChild(spkPctBadge);
+
+            spkMinusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const cur = this.core.speakerVolume || 100;
+                this.updateSpeakerVolume(Math.max(0, cur - 10));
+            });
+
+            spkPlusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const cur = this.core.speakerVolume || 100;
+                this.updateSpeakerVolume(Math.min(100, cur + 10));
+            });
+
+            spkChan.appendChild(spkVolCtrl);
+            deck.appendChild(spkChan);
+
+            this.refreshSegmentedVolumeDisplay(deck, this.core.micVolume || 100, this.core.speakerVolume || 100);
+
+            return deck;
         }
         tReplace(key, params = {}) {
             let str = this.t[key] || key;
@@ -791,39 +1027,7 @@
                             </button>
                         </div>
 
-                        <!-- Line 2 Dual Hardware Audio Level Meters & Volume Controls Deck -->
-                        <div class="dual-vu-meters-deck">
-                            <div class="vu-channel-card">
-                                <div class="vu-channel-header">
-                                    <div class="vu-meter-label" title="${t.mute}">
-                                        ${SVG_ICONS.mic}
-                                        <span>${isAr ? 'ميك' : 'MIC'}</span>
-                                    </div>
-                                    <span id="line2MicVolumeVal" class="vu-vol-val">100%</span>
-                                </div>
-                                <div class="vu-slider-wrap">
-                                    <input type="range" id="line2MicVolumeSlider" class="vu-volume-slider" min="0" max="100" value="100" step="1" title="Line 2 Mic Volume">
-                                </div>
-                                <div class="vu-meter-track">
-                                    <div id="line2VuMeterBar" class="vu-meter-bar"></div>
-                                </div>
-                            </div>
-                            <div class="vu-channel-card">
-                                <div class="vu-channel-header">
-                                    <div class="vu-meter-label" title="${t.speaker}">
-                                        ${SVG_ICONS.headphones}
-                                        <span>${isAr ? 'سماعة' : 'SPK'}</span>
-                                    </div>
-                                    <span id="line2SpeakerVolumeVal" class="vu-vol-val">100%</span>
-                                </div>
-                                <div class="vu-slider-wrap">
-                                    <input type="range" id="line2SpeakerVolumeSlider" class="vu-volume-slider" min="0" max="100" value="100" step="1" title="Line 2 Speaker Volume">
-                                </div>
-                                <div class="vu-meter-track">
-                                    <div id="line2SpeakerVuMeterBar" class="vu-meter-bar"></div>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
 
@@ -1133,6 +1337,7 @@
                 timerEl.textContent = call.answerTime ? this.formatDuration(Math.round((Date.now() - call.answerTime)/1000)) : (call.status === 'ringing' ? 'Ringing...' : 'Calling...');
                 contactRow.appendChild(timerEl);
                 card.appendChild(contactRow);
+                card.appendChild(this.createHeroAudioDeck(call, 'line2'));
 
                 // Actions Row
                 const actionsRow = document.createElement('div');
@@ -2188,6 +2393,7 @@
                 contactRow.appendChild(avatarInfo);
 
                 card.appendChild(contactRow);
+                card.appendChild(this.createHeroAudioDeck(call, 'line1'));
 
                 // Attended transfer consultation bar
                 if (this.attendedTransferState && this.attendedTransferState.callId === call.id) {
