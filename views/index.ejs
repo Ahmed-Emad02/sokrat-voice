@@ -3404,23 +3404,25 @@ body::before { display: none !important; }
 /* ── SEGMENTED NAV ── */
 .sub-nav-tabs {
     display: flex !important;
-    background: rgba(255,255,255,0.03) !important;
-    border: none !important;
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
-    border-radius: 0 !important;
-    padding: 3px 12px !important;
-    gap: 2px !important;
-    margin: 0 !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 12px !important;
+    padding: 3px 4px !important;
+    gap: 3px !important;
+    margin: 8px auto 6px auto !important;
+    max-width: 420px !important;
+    width: calc(100% - 20px) !important;
     min-height: auto !important;
-    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
 }
 
 .sub-nav-tab {
     flex: 1 !important;
-    height: 26px !important;
+    height: 28px !important;
     background: transparent !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 9px !important;
     color: rgba(255,255,255,0.35) !important;
     font-size: 10.5px !important;
     font-weight: 600 !important;
@@ -4442,7 +4444,6 @@ select.input-text option {
 }
 
 /* Wide screen centering */
-.sub-nav-tabs,
 #tabContentDialer,
 #tabContentContacts,
 #tabContentHistory {
@@ -4757,7 +4758,7 @@ select.input-text option {
 
             <div class="header-status-strip">
                 <span id="statusPulseDot" class="status-pulse-dot"></span>
-                <select id="presetSelect" class="compact-ext-select" onchange="window.softphoneUi.onPresetChanged()" style="display:none !important;">
+                <select id="presetSelect" class="compact-ext-select" style="display:none !important;">
                     <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '150', name: '150', tech: 'pjsip'}]).forEach(function(ext) { %>
                         <option value="ext_<%= ext.extension %>" <%= (ext.extension === '150') ? 'selected' : '' %>>
                             Ext <%= ext.extension %>
