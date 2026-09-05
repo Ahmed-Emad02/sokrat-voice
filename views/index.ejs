@@ -3284,10 +3284,15 @@ html.is-popout .app-window,
     border-radius: 22px !important;
     box-shadow: 0 30px 80px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
     overflow: hidden !important;
-    display: flex !important;
+    display: flex;
     flex-direction: column !important;
     margin: auto !important;
     position: relative !important;
+}
+
+.app-window[style*="display: none"],
+.app-window.hidden {
+    display: none !important;
 }
 /* ── TITLEBAR ── */
 .app-titlebar {
@@ -7534,14 +7539,26 @@ select.input-text option {
             const titleEl = document.getElementById('activeAccountHeaderTitle');
 
             if (mode === 'console') {
-                if (loginView) loginView.style.display = 'none';
-                if (mainAppWindow) mainAppWindow.style.display = 'flex';
+                if (loginView) {
+                    loginView.style.setProperty('display', 'none', 'important');
+                    loginView.classList.add('hidden');
+                }
+                if (mainAppWindow) {
+                    mainAppWindow.style.setProperty('display', 'flex', 'important');
+                    mainAppWindow.classList.remove('hidden');
+                }
                 if (titleEl && this.core.activePreset) {
                     titleEl.textContent = 'Ext ' + this.core.activePreset.extension;
                 }
             } else {
-                if (loginView) loginView.style.display = 'flex';
-                if (mainAppWindow) mainAppWindow.style.display = 'none';
+                if (loginView) {
+                    loginView.style.setProperty('display', 'flex', 'important');
+                    loginView.classList.remove('hidden');
+                }
+                if (mainAppWindow) {
+                    mainAppWindow.style.setProperty('display', 'none', 'important');
+                    mainAppWindow.classList.add('hidden');
+                }
                 const submitBtn = document.getElementById('loginSubmitBtn');
                 if (submitBtn) {
                     submitBtn.disabled = false;
