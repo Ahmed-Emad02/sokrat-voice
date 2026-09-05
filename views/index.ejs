@@ -3473,8 +3473,13 @@ body::before { display: none !important; }
 #tabContentDialer.active {
     flex: 1 !important;
     display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
+}
+#tabContentDialer .dialer-col {
+    flex: none !important;
+    height: auto !important;
 }
 .workspace-header { display: none !important; }
 
