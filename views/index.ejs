@@ -4403,6 +4403,168 @@ select.input-text option {
     box-sizing: border-box !important;
 }
 
+/* ── INCOMING CALL 2-COLUMN ACTION ROW (Fixes 4-col half-empty card) ── */
+.hero-actions-row--incoming {
+    display: grid !important;
+    grid-template-columns: 1.35fr 1fr !important;
+    gap: 10px !important;
+}
+
+.end-call-btn.btn-answer,
+.end-call-btn.call-action--answer {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+    border: none !important;
+    font-weight: 800 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+.end-call-btn.btn-answer:hover,
+.end-call-btn.call-action--answer:hover {
+    background: #10b981 !important;
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.55) !important;
+    transform: translateY(-1px) !important;
+}
+
+.end-call-btn.btn-decline,
+.end-call-btn.call-action--decline,
+.end-call-btn.btn-hangup,
+.end-call-btn.call-action--end {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35) !important;
+    border: none !important;
+    font-weight: 800 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+.end-call-btn.btn-decline:hover,
+.end-call-btn.call-action--decline:hover,
+.end-call-btn.btn-hangup:hover,
+.end-call-btn.call-action--end:hover {
+    background: #dc2626 !important;
+    box-shadow: 0 6px 22px rgba(239, 68, 68, 0.55) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── CUSTOM EXTENSION DROPDOWN POPOVER ── */
+.custom-ext-dropdown-container {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.custom-ext-trigger {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 6px !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 3px 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    outline: none !important;
+    max-width: 160px !important;
+}
+.custom-ext-trigger:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
+}
+.custom-ext-trigger svg {
+    color: rgba(255, 255, 255, 0.4) !important;
+    transition: transform 0.15s ease !important;
+    flex-shrink: 0 !important;
+}
+.custom-ext-trigger:hover svg {
+    color: #34d399 !important;
+}
+
+.custom-ext-popover {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: 0 !important;
+    min-width: 180px !important;
+    background: #111116 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    backdrop-filter: blur(20px) !important;
+    z-index: 1000 !important;
+    overflow: hidden !important;
+    animation: dialDropdownFade 0.12s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.custom-ext-popover-header {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding: 6px 10px !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.1em !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    text-transform: uppercase !important;
+}
+
+.custom-ext-list {
+    padding: 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}
+
+.custom-ext-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 7px 10px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.12s ease !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+.custom-ext-item:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #ffffff !important;
+}
+.custom-ext-item.active {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #34d399 !important;
+    font-weight: 700 !important;
+}
+
+.custom-ext-item-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    flex-shrink: 0 !important;
+}
+.custom-ext-item.active .custom-ext-item-dot {
+    background: #34d399 !important;
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.6) !important;
+}
+
     </style>
 </head>
 <body>
@@ -4546,13 +4708,26 @@ select.input-text option {
 
             <div class="header-status-strip">
                 <span id="statusPulseDot" class="status-pulse-dot"></span>
-                <select id="presetSelect" class="compact-ext-select" onchange="window.softphoneUi.onPresetChanged()">
+                <select id="presetSelect" class="compact-ext-select" onchange="window.softphoneUi.onPresetChanged()" style="display:none !important;">
                     <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '150', name: '150', tech: 'pjsip'}]).forEach(function(ext) { %>
                         <option value="ext_<%= ext.extension %>" <%= (ext.extension === '150') ? 'selected' : '' %>>
                             Ext <%= ext.extension %>
                         </option>
                     <% }); %>
                 </select>
+                <!-- Custom Stylized Extension Trigger & Popover -->
+                <div class="custom-ext-dropdown-container">
+                    <button type="button" id="customExtTrigger" class="custom-ext-trigger" onclick="window.softphoneUi.toggleCustomExtDropdown(event)" title="Select Extension">
+                        <span id="customExtTriggerLabel">Ext 150</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div id="customExtPopover" class="custom-ext-popover" style="display: none;">
+                        <div class="custom-ext-popover-header">
+                            <span><%= isRtl ? 'التحويلات المتاحة' : 'AVAILABLE EXTENSIONS' %></span>
+                        </div>
+                        <div id="customExtList" class="custom-ext-list"></div>
+                    </div>
+                </div>
                 <button type="button" id="connectBtn" class="compact-connect-btn">
                     <%= isRtl ? 'اتصال' : 'Connect' %>
                 </button>
@@ -7765,18 +7940,17 @@ select.input-text option {
                 card.appendChild(this.createHeroAudioDeck(call, 'line2'));
 
                 // Actions Row
-                const actionsRow = document.createElement('div');
-                actionsRow.className = 'hero-actions-row';
-
                 const isIncomingRinging = (call.direction === 'incoming' && !call.answerTime);
+                const actionsRow = document.createElement('div');
+                actionsRow.className = isIncomingRinging ? 'hero-actions-row hero-actions-row--incoming' : 'hero-actions-row';
                 if (isIncomingRinging) {
                     const answerBtn = document.createElement('button');
-                    answerBtn.className = 'end-call-btn btn-answer';
+                    answerBtn.className = 'end-call-btn btn-answer call-action--answer';
                     answerBtn.innerHTML = `${SVG_ICONS.phone}<span>${this.currentLang === 'ar' ? 'رد' : 'Answer'}</span>`;
                     answerBtn.onclick = () => this.line2Core.answerCall(call.id);
 
                     const declineBtn = document.createElement('button');
-                    declineBtn.className = 'end-call-btn';
+                    declineBtn.className = 'end-call-btn btn-decline call-action--decline';
                     declineBtn.innerHTML = `${SVG_ICONS.phoneOff}<span>${this.currentLang === 'ar' ? 'رفض' : 'Decline'}</span>`;
                     declineBtn.onclick = () => this.line2Core.hangupCall(call.id);
 
@@ -7784,7 +7958,7 @@ select.input-text option {
                     actionsRow.appendChild(declineBtn);
                 } else {
                     const endBtn = document.createElement('button');
-                    endBtn.className = 'end-call-btn';
+                    endBtn.className = 'end-call-btn btn-hangup call-action--end';
                     endBtn.innerHTML = `${SVG_ICONS.phoneOff}<span>${this.currentLang === 'ar' ? 'إنهاء' : 'End Call'}</span>`;
                     endBtn.onclick = () => this.line2Core.hangupCall(call.id);
 
@@ -8019,6 +8193,7 @@ select.input-text option {
                     if (p.isDefault) opt.selected = true;
                     this.dom.presetSelect.appendChild(opt);
                 });
+                this.renderCustomExtDropdown(presets);
             }
 
             if (this.dom.loginExtSelect) {
@@ -8060,6 +8235,8 @@ select.input-text option {
             const preset = this.getSelectedPreset();
             if (!preset) return;
 
+            this.syncCustomExtTrigger();
+
             if (this.dom.dndCheckbox) this.dom.dndCheckbox.checked = Boolean(preset.dnd);
             if (this.dom.autoAnswerCheckbox) this.dom.autoAnswerCheckbox.checked = Boolean(preset.autoAnswer);
 
@@ -8080,6 +8257,78 @@ select.input-text option {
                         this.dom.connectBtn.click();
                     }
                 }, 100);
+            }
+        }
+
+        renderCustomExtDropdown(presets = null) {
+            if (!presets) presets = this.getPresets();
+            const listEl = document.getElementById('customExtList');
+            const triggerLabel = document.getElementById('customExtTriggerLabel');
+            if (!listEl) return;
+            listEl.textContent = '';
+
+            const currentVal = this.dom.presetSelect ? this.dom.presetSelect.value : (presets[0] ? presets[0].id : '');
+            let selectedPreset = presets.find(p => p.id === currentVal) || presets[0];
+
+            if (triggerLabel && selectedPreset) {
+                triggerLabel.textContent = selectedPreset.label || `Ext ${selectedPreset.extension}`;
+            }
+
+            presets.forEach(p => {
+                const item = document.createElement('div');
+                item.className = `custom-ext-item ${p.id === currentVal ? 'active' : ''}`;
+                item.dataset.extId = p.id;
+
+                const dot = document.createElement('span');
+                dot.className = 'custom-ext-item-dot';
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'custom-ext-item-label';
+                textSpan.textContent = p.label || `Ext ${p.extension}`;
+
+                item.appendChild(dot);
+                item.appendChild(textSpan);
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.dom.presetSelect) {
+                        this.dom.presetSelect.value = p.id;
+                        this.dom.presetSelect.dispatchEvent(new Event('change'));
+                    }
+                    if (triggerLabel) {
+                        triggerLabel.textContent = p.label || `Ext ${p.extension}`;
+                    }
+                    this.closeCustomExtDropdown();
+                });
+
+                listEl.appendChild(item);
+            });
+        }
+
+        toggleCustomExtDropdown(e) {
+            if (e) e.stopPropagation();
+            const popover = document.getElementById('customExtPopover');
+            if (!popover) return;
+            const isVisible = popover.style.display !== 'none';
+            if (isVisible) {
+                this.closeCustomExtDropdown();
+            } else {
+                this.renderCustomExtDropdown();
+                popover.style.display = 'block';
+            }
+        }
+
+        closeCustomExtDropdown() {
+            const popover = document.getElementById('customExtPopover');
+            if (popover) popover.style.display = 'none';
+        }
+
+        syncCustomExtTrigger() {
+            const triggerLabel = document.getElementById('customExtTriggerLabel');
+            if (!triggerLabel || !this.dom.presetSelect) return;
+            const selectedOpt = this.dom.presetSelect.selectedOptions ? this.dom.presetSelect.selectedOptions[0] : null;
+            if (selectedOpt) {
+                triggerLabel.textContent = selectedOpt.textContent.trim();
             }
         }
 
@@ -8870,21 +9119,18 @@ select.input-text option {
                 }
 
                 // Action Buttons Row with Vector SVGs
-                const actionsRow = document.createElement('div');
-                actionsRow.className = 'hero-actions-row';
-
                 const isIncomingRinging = (call.direction === 'incoming' && !call.answerTime);
+                const actionsRow = document.createElement('div');
+                actionsRow.className = isIncomingRinging ? 'hero-actions-row hero-actions-row--incoming' : 'hero-actions-row';
 
                 if (isIncomingRinging) {
                     const answerBtn = document.createElement('button');
-                    answerBtn.className = 'end-call-btn';
-                    answerBtn.style.cssText = 'background:#10b981 !important; color:#ffffff !important; box-shadow:0 4px 12px rgba(16,185,129,0.35); flex:1.5; font-weight:800;';
+                    answerBtn.className = 'end-call-btn btn-answer call-action--answer';
                     setButtonContent(answerBtn, SVG_ICONS.phone, this.t.answer || 'Answer');
                     answerBtn.addEventListener('click', () => this.core.answerCall(call.id));
 
                     const declineBtn = document.createElement('button');
-                    declineBtn.className = 'end-call-btn';
-                    declineBtn.style.cssText = 'background:#ef4444 !important; color:#ffffff !important; flex:1; font-weight:800;';
+                    declineBtn.className = 'end-call-btn btn-decline call-action--decline';
                     setButtonContent(declineBtn, SVG_ICONS.phoneOff, this.t.decline || 'Decline');
                     declineBtn.addEventListener('click', () => this.core.hangupCall(call.id));
 
@@ -8893,7 +9139,7 @@ select.input-text option {
                 } else {
                     // End Call Button
                     const endBtn = document.createElement('button');
-                    endBtn.className = 'end-call-btn';
+                    endBtn.className = 'end-call-btn btn-hangup call-action--end';
                     setButtonContent(endBtn, SVG_ICONS.phoneOff, this.t.endCall);
                     endBtn.addEventListener('click', () => this.core.hangupCall(call.id));
 
@@ -9413,6 +9659,18 @@ select.input-text option {
             if (this.dom.presetSelect) {
                 this.dom.presetSelect.addEventListener('change', () => this.onPresetChanged());
             }
+
+            // Custom extension dropdown outside-click and escape handling
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.custom-ext-dropdown-container')) {
+                    this.closeCustomExtDropdown();
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.closeCustomExtDropdown();
+                }
+            });
             if (this.dom.passwordInput) {
                 this.dom.passwordInput.addEventListener('input', () => {
                     const preset = this.getSelectedPreset();
