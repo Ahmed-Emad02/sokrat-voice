@@ -3394,15 +3394,6 @@ body::before { display: none !important; }
     color: rgba(255,255,255,0.8) !important;
     background: rgba(255,255,255,0.06) !important;
 }
-.titlebar-btn-close {
-    background: rgba(255,255,255,0.04) !important;
-    color: rgba(255,255,255,0.35) !important;
-    border-color: transparent !important;
-}
-.titlebar-btn-close:hover {
-    background: rgba(239,68,68,0.12) !important;
-    color: #f87171 !important;
-}
 
 /* ── SEGMENTED NAV ── */
 .sub-nav-tabs {
@@ -4056,19 +4047,6 @@ body::before { display: none !important; }
     color: #34d399 !important;
 }
 
-/* Fix titlebar close button inline style override */
-.titlebar-btn-close,
-.titlebar-btn-close[style] {
-    background: rgba(255,255,255,0.04) !important;
-    color: rgba(255,255,255,0.35) !important;
-    border-color: transparent !important;
-    font-weight: normal !important;
-}
-.titlebar-btn-close:hover,
-.titlebar-btn-close[style]:hover {
-    background: rgba(239,68,68,0.12) !important;
-    color: #f87171 !important;
-}
 
 
     </style>
@@ -4111,9 +4089,6 @@ body::before { display: none !important; }
                 </button>
                 <button type="button" onclick="window.softphoneUi.openPersistentWindow()" class="titlebar-btn" title="Open in Persistent Popout Window">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </button>
-                <button type="button" onclick="(window.softphoneUi && typeof window.softphoneUi.minimize === 'function') ? window.softphoneUi.minimize() : (window.sokratTelephonyHost && typeof window.sokratTelephonyHost.minimize === 'function') ? window.sokratTelephonyHost.minimize() : window.postMessage({ version: 1, type: 'sokrat.voice.collapse' }, '*')" class="titlebar-btn titlebar-btn-close" title="<%= isRtl ? 'تصغير الهاتف' : 'Minimize Softphone' %>">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
         </div>
@@ -4239,9 +4214,6 @@ body::before { display: none !important; }
                 </button>
                 <button type="button" onclick="window.softphoneUi.toggleTheme()" class="titlebar-btn" title="Toggle Light/Dark Theme">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                </button>
-                <button type="button" onclick="(window.softphoneUi && typeof window.softphoneUi.minimize === 'function') ? window.softphoneUi.minimize() : (window.sokratTelephonyHost && typeof window.sokratTelephonyHost.minimize === 'function') ? window.sokratTelephonyHost.minimize() : window.postMessage({ version: 1, type: 'sokrat.voice.collapse' }, '*')" class="titlebar-btn titlebar-btn-close" title="<%= isRtl ? 'تصغير الهاتف' : 'Minimize Softphone' %>">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
         </div>
