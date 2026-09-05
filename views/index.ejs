@@ -94,8 +94,29 @@
     --radius-lg: 12px;
     --radius-xl: 16px;
     --radius-full: 9999px;
-    --font-main: 'JetBrains Mono', 'Cairo', monospace, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Cairo', monospace;
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --bg-primary: #09090b;
+    --bg-secondary: #121215;
+    --bg-card: #18181b;
+    --bg-card-subtle: #202024;
+    --bg-hover: #27272a;
+    --bg-active: #3f3f46;
+    --bg-input: #121215;
+    --border-primary: rgba(255, 255, 255, 0.08);
+    --border-accent: rgba(255, 255, 255, 0.16);
+    --border-card: rgba(255, 255, 255, 0.07);
+    --border-focus: #10b981;
+    --text-primary: #ffffff;
+    --text-secondary: #d4d4d8;
+    --text-muted: #71717a;
+    --accent-color: #10b981;
+    --accent-hover: #059669;
+    --accent-green: #10b981;
+    --accent-green-hover: #059669;
+    --accent-red: #ef4444;
+    --accent-red-hover: #dc2626;
 }
 
 html.light-theme {
@@ -127,13 +148,22 @@ body, button, input, select, textarea, optgroup, option {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'JetBrains Mono', 'Cairo', monospace, sans-serif !important;
+    font-family: var(--font-main) !important;
+}
+
+.dialer-input,
+.keypad-digit,
+.call-timer,
+.recent-call-time,
+.status-pill,
+[data-voice-timer] {
+    font-variant-numeric: tabular-nums lining-nums !important;
 }
 
 body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', 'Cairo', monospace, sans-serif !important;
+    font-family: var(--font-main) !important;
     font-size: 13px;
     line-height: 1.4;
     min-height: 100vh;
@@ -3215,6 +3245,336 @@ html.light-theme .dial-history-item:hover {
 html.light-theme .dial-history-num {
     color: #0f172a;
 }
+    
+/* ==========================================================================
+   ENTERPRISE MODERN DIALER SYSTEM V5.0
+   ========================================================================== */
+
+/* Top Unified Header */
+.app-titlebar {
+    height: 44px !important;
+    min-height: 44px !important;
+    background: #121215 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 12px !important;
+    gap: 8px !important;
+    user-select: none !important;
+    flex-shrink: 0 !important;
+}
+
+.app-titlebar-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    color: #ffffff !important;
+    text-transform: uppercase !important;
+}
+
+.brand-badge {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #10b981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    padding: 1px 5px !important;
+    border-radius: 5px !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+}
+
+.header-status-strip {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: #18181b !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 999px !important;
+    padding: 2px 8px 2px 10px !important;
+    height: 28px !important;
+}
+
+.status-pulse-dot {
+    width: 7px !important;
+    height: 7px !important;
+    border-radius: 50% !important;
+    background: #10b981 !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+.status-pulse-dot.offline {
+    background: #71717a !important;
+    box-shadow: none !important;
+}
+.status-pulse-dot.ringing {
+    background: #f59e0b !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3) !important;
+    animation: statusDotPulse 0.8s infinite alternate !important;
+}
+@keyframes statusDotPulse {
+    from { opacity: 0.6; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1.15); }
+}
+
+.compact-ext-select {
+    background: transparent !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    outline: none !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.compact-connect-btn {
+    background: transparent !important;
+    border: none !important;
+    color: #10b981 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    padding: 0 4px !important;
+    transition: color 0.12s ease !important;
+}
+.compact-connect-btn.btn-danger {
+    color: #ef4444 !important;
+}
+
+/* Modern Segmented Navigation */
+.sub-nav-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    background: #121215 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 12px !important;
+    padding: 3px !important;
+    gap: 4px !important;
+    margin: 10px 14px 12px !important;
+}
+
+.sub-nav-tab {
+    height: 34px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #71717a !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: none !important;
+}
+.sub-nav-tab:hover {
+    color: #d4d4d8 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+.sub-nav-tab.active {
+    background: #27272a !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* High Contrast Display Input */
+.dialer-input-box {
+    background: #121215 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    padding: 4px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 54px !important;
+    margin-bottom: 12px !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.15s ease !important;
+}
+.dialer-input-box:focus-within {
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    background: #18181b !important;
+}
+
+.dialer-input {
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.04em !important;
+    text-align: center !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    width: 100% !important;
+    font-variant-numeric: tabular-nums !important;
+}
+.dialer-input::placeholder {
+    color: #52525b !important;
+    font-size: 20px !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
+}
+
+/* Squircle Keypad Grid */
+.keypad-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+.keypad-btn {
+    height: 56px !important;
+    background: #18181b !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+    user-select: none !important;
+    padding: 0 !important;
+}
+.keypad-btn:hover {
+    background: #27272a !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    transform: translateY(-1px) !important;
+}
+.keypad-btn:active {
+    transform: scale(0.96) !important;
+    background: #3f3f46 !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.keypad-digit {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    line-height: 1 !important;
+}
+
+.keypad-sub {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    color: #71717a !important;
+    letter-spacing: 0.1em !important;
+    margin-top: 2px !important;
+    text-transform: uppercase !important;
+}
+
+/* Action Controls Row */
+.keypad-action-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+}
+
+.call-pill-btn {
+    flex: 1 !important;
+    height: 48px !important;
+    background: #10b981 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 14px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35) !important;
+    transition: all 0.15s ease !important;
+}
+.call-pill-btn:hover {
+    background: #059669 !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
+    transform: translateY(-1px) !important;
+}
+.call-pill-btn:active {
+    transform: scale(0.98) !important;
+}
+.call-pill-btn:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+.call-aux-btn {
+    width: 54px !important;
+    height: 48px !important;
+    background: #18181b !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    color: #a1a1aa !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.12s ease !important;
+}
+.call-aux-btn:hover {
+    background: #27272a !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Utility Dock */
+.dialer-tool-bar {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    padding: 6px !important;
+    background: #121215 !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 12px !important;
+    margin-top: 6px !important;
+}
+
+.tool-icon-btn {
+    height: 38px !important;
+    background: #18181b !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 8px !important;
+    color: #a1a1aa !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.12s ease !important;
+}
+.tool-icon-btn:hover {
+    background: #27272a !important;
+    color: #f4f4f5 !important;
+}
+.tool-icon-btn.active,
+.tool-icon-btn.active-auto,
+.tool-icon-btn.active-speaker-mute {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    color: #10b981 !important;
+}
+.tool-icon-btn.active-dnd {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #ef4444 !important;
+}
+
     </style>
 </head>
 <body>
@@ -3352,69 +3712,41 @@ html.light-theme .dial-history-num {
     <!-- 2. MAIN APP WINDOW CONTAINER (TELEPHONY CONSOLE) -->
     <div id="mainAppWindow" class="app-window" style="display: none;">
         
-        <!-- macOS Style Window Titlebar -->
+        <!-- Unified Modern Header (Single Aligned Row) -->
         <div class="app-titlebar">
             <div class="app-titlebar-title">
-                <span>SOKRAT <span style="color: var(--accent-color);">VOICE</span></span>
+                <span>SOKRAT</span>
+                <span class="brand-badge">VOICE</span>
             </div>
+
+            <div class="header-status-strip">
+                <span id="statusPulseDot" class="status-pulse-dot"></span>
+                <select id="presetSelect" class="compact-ext-select" onchange="window.softphoneUi.onPresetChanged()">
+                    <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '150', name: '150', tech: 'pjsip'}]).forEach(function(ext) { %>
+                        <option value="ext_<%= ext.extension %>" <%= (ext.extension === '150') ? 'selected' : '' %>>
+                            Ext <%= ext.extension %>
+                        </option>
+                    <% }); %>
+                </select>
+                <button type="button" id="connectBtn" class="compact-connect-btn">
+                    <%= isRtl ? 'اتصال' : 'Connect' %>
+                </button>
+                <div id="statusBadge" style="display: none;"><span id="statusText"><%= isRtl ? 'غير متصل' : 'Offline' %></span></div>
+            </div>
+
             <div class="titlebar-actions">
-                <button type="button" class="titlebar-action-pill" onclick="window.softphoneUi.switchAccount()" title="<%= isRtl ? 'تبديل الحساب' : 'Switch Account / Logout' %>">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    <span><%= isRtl ? 'تبديل' : 'Switch' %></span>
+                <button type="button" class="titlebar-btn" onclick="window.softphoneUi.openPresetModal()" title="<%= isRtl ? 'إدارة الحسابات' : 'Accounts' %>">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </button>
-                <button type="button" class="titlebar-action-pill" onclick="window.softphoneUi.openPresetModal()" title="<%= isRtl ? 'إدارة الحسابات' : 'Manage Accounts' %>">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span><%= isRtl ? 'حسابات' : 'Accounts' %></span>
-                </button>
-                <button type="button" class="titlebar-action-pill" onclick="window.softphoneUi.openAudioModal()" title="<%= isRtl ? 'إعدادات الصوت' : 'Audio Settings' %>">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
-                    <span><%= isRtl ? 'صوت' : 'Audio' %></span>
-                </button>
-                <button type="button" onclick="window.softphoneUi.toggleSplitView()" id="splitViewToggleBtn" class="titlebar-btn" title="Toggle Split View / Dual Line Mode">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="0"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+                <button type="button" class="titlebar-btn" onclick="window.softphoneUi.openAudioModal()" title="<%= isRtl ? 'إعدادات الصوت' : 'Audio Settings' %>">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
                 </button>
                 <button type="button" onclick="window.softphoneUi.toggleTheme()" class="titlebar-btn" title="Toggle Light/Dark Theme">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 </button>
-                <button type="button" onclick="window.softphoneUi.openPersistentWindow()" class="titlebar-btn" title="Open in Persistent Popout Window">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <button type="button" onclick="(window.softphoneUi && typeof window.softphoneUi.minimize === 'function') ? window.softphoneUi.minimize() : (window.sokratTelephonyHost && typeof window.sokratTelephonyHost.minimize === 'function') ? window.sokratTelephonyHost.minimize() : window.postMessage({ version: 1, type: 'sokrat.voice.collapse' }, '*')" class="titlebar-btn titlebar-btn-close" title="<%= isRtl ? 'تصغير الهاتف' : 'Minimize Softphone' %>" style="background: rgba(239, 68, 68, 0.18); color: #ef4444; border-color: rgba(239, 68, 68, 0.35); font-weight: bold;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
-            </div>
-        </div>
-
-        <!-- Unified Shared Topbar Across Full App Window (Centered 50%/50% in Split View) -->
-        <div class="workspace-header">
-            <!-- Line 1 Controls Column (Left 50% in Split View) -->
-            <div class="header-line1-controls" id="headerLine1Controls">
-                <div class="header-status-strip">
-                    <select id="presetSelect" class="input-text font-mono font-bold" onchange="window.softphoneUi.onPresetChanged()">
-                        <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '150', name: '150', tech: 'pjsip'}]).forEach(function(ext) { %>
-                            <option value="ext_<%= ext.extension %>" <%= (ext.extension === '150') ? 'selected' : '' %>>
-                                Ext <%= ext.extension %> (<%= ext.tech || 'pjsip' %>)
-                            </option>
-                        <% }); %>
-                    </select>
-                    <button type="button" id="connectBtn" class="btn btn-primary">
-                        <%= isRtl ? 'اتصال' : 'Connect' %>
-                    </button>
-                    <div id="statusBadge" class="status-pill">
-                        <span style="font-size: 7px;">●</span>
-                        <span id="statusText"><%= isRtl ? 'غير متصل' : 'Offline' %></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Line 2 Controls Column (Right 50% in Split View) -->
-            <div class="header-line2-controls" id="headerLine2Controls">
-                <select id="line2PresetSelect" class="input-text font-mono font-bold">
-                    <% (typeof extensions !== 'undefined' && Array.isArray(extensions) ? extensions : [{extension: '151', name: '151', tech: 'pjsip'}]).forEach(function(ext) { %>
-                        <option value="ext_<%= ext.extension %>" <%= (ext.extension === '151') ? 'selected' : '' %>>
-                            Ext <%= ext.extension %> (<%= ext.tech || 'pjsip' %>)
-                        </option>
-                    <% }); %>
-                </select>
-                <button type="button" id="line2ConnectBtn" class="btn btn-primary">Connect</button>
-                <div id="line2StatusBadge" class="status-pill"><span style="font-size: 7px;">●</span><span id="line2StatusText">Offline</span></div>
             </div>
         </div>
 
@@ -3479,20 +3811,20 @@ html.light-theme .dial-history-num {
                             </div>
                         </div>
 
-                        <!-- 3x4 Boxy Keypad Grid -->
+                        <!-- 3x4 Modern Squircle Keypad Grid with DTMF Labels -->
                         <div class="keypad-grid" id="keypadGrid">
-                            <button type="button" class="keypad-btn" data-digit="1"><span class="keypad-digit">1</span></button>
-                            <button type="button" class="keypad-btn" data-digit="2"><span class="keypad-digit">2</span></button>
-                            <button type="button" class="keypad-btn" data-digit="3"><span class="keypad-digit">3</span></button>
-                            <button type="button" class="keypad-btn" data-digit="4"><span class="keypad-digit">4</span></button>
-                            <button type="button" class="keypad-btn" data-digit="5"><span class="keypad-digit">5</span></button>
-                            <button type="button" class="keypad-btn" data-digit="6"><span class="keypad-digit">6</span></button>
-                            <button type="button" class="keypad-btn" data-digit="7"><span class="keypad-digit">7</span></button>
-                            <button type="button" class="keypad-btn" data-digit="8"><span class="keypad-digit">8</span></button>
-                            <button type="button" class="keypad-btn" data-digit="9"><span class="keypad-digit">9</span></button>
-                            <button type="button" class="keypad-btn" data-digit="*"><span class="keypad-digit">*</span></button>
-                            <button type="button" class="keypad-btn" data-digit="0"><span class="keypad-digit">0</span></button>
-                            <button type="button" class="keypad-btn" data-digit="#"><span class="keypad-digit">#</span></button>
+                            <button type="button" class="keypad-btn" data-digit="1"><span class="keypad-digit">1</span><span class="keypad-sub"></span></button>
+                            <button type="button" class="keypad-btn" data-digit="2"><span class="keypad-digit">2</span><span class="keypad-sub">ABC</span></button>
+                            <button type="button" class="keypad-btn" data-digit="3"><span class="keypad-digit">3</span><span class="keypad-sub">DEF</span></button>
+                            <button type="button" class="keypad-btn" data-digit="4"><span class="keypad-digit">4</span><span class="keypad-sub">GHI</span></button>
+                            <button type="button" class="keypad-btn" data-digit="5"><span class="keypad-digit">5</span><span class="keypad-sub">JKL</span></button>
+                            <button type="button" class="keypad-btn" data-digit="6"><span class="keypad-digit">6</span><span class="keypad-sub">MNO</span></button>
+                            <button type="button" class="keypad-btn" data-digit="7"><span class="keypad-digit">7</span><span class="keypad-sub">PQRS</span></button>
+                            <button type="button" class="keypad-btn" data-digit="8"><span class="keypad-digit">8</span><span class="keypad-sub">TUV</span></button>
+                            <button type="button" class="keypad-btn" data-digit="9"><span class="keypad-digit">9</span><span class="keypad-sub">WXYZ</span></button>
+                            <button type="button" class="keypad-btn" data-digit="*"><span class="keypad-digit">*</span><span class="keypad-sub"></span></button>
+                            <button type="button" class="keypad-btn" data-digit="0"><span class="keypad-digit">0</span><span class="keypad-sub">+</span></button>
+                            <button type="button" class="keypad-btn" data-digit="#"><span class="keypad-digit">#</span><span class="keypad-sub"></span></button>
                         </div>
 
                         <!-- Action Buttons: Call & Clear -->
