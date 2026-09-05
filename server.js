@@ -39,6 +39,28 @@ app.use('/phone', express.static(path.join(__dirname, 'public'), { maxAge: '1d',
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+function resolveTelephonyEndpoint(headers = {}, fallbackHost = '127.0.0.1') {
+    const forwardedHost = String(headers['x-forwarded-host'] || '').split(',')[0].trim();
+    if (forwardedHost) {
+        try {
+            const parsed = new URL(`https://${forwardedHost}`);
+            return {
+                host: parsed.hostname,
+                defaultWss: `wss://${parsed.host}/ws`
+            };
+        } catch (_) {}
+    }
+
+    const requestHost = String(headers.host || '').trim();
+    const host = requestHost.split(':')[0] || fallbackHost;
+    const portStr = requestHost.endsWith(':8443') ? ':8443' : '';
+    return {
+        host,
+        defaultWss: `wss://${host}${portStr}/ws`
+    };
+}
+
+
 // --- HELPER: FETCH EXTENSIONS FROM ASTERISK / MYSQL ---
 async function fetchPbxExtensions() {
     let allExtensions = [];
@@ -122,9 +144,7 @@ app.get(['/api/extensions', '/phone/api/extensions'], async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     try {
         const { allExtensions, webrtcExtensions } = await fetchPbxExtensions();
-        const host = req.headers['x-forwarded-host'] || req.headers['host']?.split(':')[0] || req.hostname || '127.0.0.1';
-        const portStr = (req.headers.host && req.headers.host.includes(':8443')) ? ':8443' : '';
-        const defaultWss = `wss://${host}${portStr}/ws`;
+        const { host, defaultWss } = resolveTelephonyEndpoint(req.headers, req.hostname);
         res.json({
             success: true,
             extensions: allExtensions,
@@ -531,4 +551,4 @@ function handleShutdown(signal) {
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 
-module.exports = { app, server };
+module.exports = { app, server, resolveTelephonyEndpoint };
