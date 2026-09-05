@@ -3465,6 +3465,16 @@ body::before { display: none !important; }
     overflow-x: hidden !important;
     flex: 1 !important;
     min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Center dialer content vertically in the viewport */
+#tabContentDialer.active {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 .workspace-header { display: none !important; }
 
