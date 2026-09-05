@@ -3262,10 +3262,11 @@ html.light-theme .dial-history-num {
     border-radius: 18px !important;
     box-shadow: 0 40px 100px -25px rgba(0,0,0,0.95) !important;
     overflow: hidden !important;
+    min-height: 100vh !important;
 }
 
 body {
-    background: #050506 !important;
+    background: #0c0c0f !important;
 }
 body::before { display: none !important; }
 
@@ -3458,17 +3459,26 @@ body::before { display: none !important; }
     background: transparent !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    height: 100% !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 .workspace-header { display: none !important; }
 
 .tab-view-content {
     padding: 6px 16px 6px !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
 .dialer-col {
     gap: 0 !important;
     max-width: 340px !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
 }
 
 /* ── DIAL INPUT ── */
