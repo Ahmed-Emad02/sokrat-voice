@@ -4311,10 +4311,12 @@ select.input-text option {
     background: rgba(255, 255, 255, 0.03) !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
     border-radius: 12px !important;
-    padding: 10px 14px !important;
+    padding: 10px 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    gap: 10px !important;
+    min-width: 0 !important;
     transition: all 0.15s ease !important;
 }
 .recent-card:hover {
@@ -4327,6 +4329,9 @@ select.input-text option {
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
 }
 
 .recent-avatar {
@@ -4341,12 +4346,44 @@ select.input-text option {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+.recent-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
 }
 
 .recent-name {
     font-size: 13px !important;
     font-weight: 700 !important;
     color: #ffffff !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+}
+
+.recent-dir {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.3 !important;
 }
 
 .recent-dir.incoming {
@@ -4365,15 +4402,26 @@ select.input-text option {
     border: 1px solid rgba(239, 68, 68, 0.2) !important;
 }
 
+.recent-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+}
+
 .recent-time {
     font-size: 10px !important;
-    color: rgba(255, 255, 255, 0.4) !important;
+    color: rgba(255, 255, 255, 0.45) !important;
     font-family: var(--font-mono) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    letter-spacing: 0.02em !important;
 }
 
 .recent-call-btn {
-    width: 34px !important;
-    height: 34px !important;
+    width: 32px !important;
+    height: 32px !important;
     border-radius: 50% !important;
     background: rgba(16, 185, 129, 0.12) !important;
     border: 1px solid rgba(16, 185, 129, 0.25) !important;
@@ -4384,6 +4432,7 @@ select.input-text option {
     cursor: pointer !important;
     transition: all 0.15s ease !important;
     padding: 0 !important;
+    flex-shrink: 0 !important;
 }
 .recent-call-btn:hover {
     background: #10b981 !important;
