@@ -3254,27 +3254,41 @@ html.light-theme .dial-history-num {
    iOS-inspired circular keypad · glass depth · emerald accent
    ========================================================================== */
 
-/* ── WINDOW ── */
-.app-window {
-    max-width: 100% !important;
-    width: 100% !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
+/* ── CENTERED FLOATING SOFTPHONE CONSOLE ── */
+html, body,
+body.is-popout, html.is-popout body {
+    height: 100% !important;
     min-height: 100vh !important;
-    background: #0c0c0f !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
+    background: #060608 !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     overflow: hidden !important;
-    margin: 0 !important;
-}
-
-body {
-    background: #0c0c0f !important;
-    padding: 0 !important;
-    margin: 0 !important;
 }
 body::before { display: none !important; }
+
+.app-window,
+body.is-popout .app-window,
+html.is-popout .app-window,
+.html.is-popout .app-window {
+    width: 360px !important;
+    max-width: calc(100vw - 32px) !important;
+    height: auto !important;
+    max-height: calc(100vh - 32px) !important;
+    min-height: 520px !important;
+    background: #0e0e13 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 30px 80px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: auto !important;
+    position: relative !important;
+}
 /* ── TITLEBAR ── */
 .app-titlebar {
     height: 32px !important;
@@ -3889,12 +3903,6 @@ body::before { display: none !important; }
     color: #34d399 !important;
 }
 
-/* ── Popout ── */
-.html.is-popout .app-window {
-    max-width: 100% !important;
-    border-radius: 0 !important;
-    border: none !important;
-}
 
 /* ── Dial history dropdown ── */
 .dial-history-dropdown-header {
