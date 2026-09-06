@@ -6872,10 +6872,34 @@ select.input-text option {
             this.setupClickToCall();
             this.initVolumeControls();
 
-            if (this.core.regState === 'REGISTERED') {
+            // Embedded Session Auto-Connect from CRM
+            const embedCfg = window.SOFTPHONE_EMBED_CONFIG;
+            if (embedCfg && embedCfg.isEmbedded && embedCfg.autoConnect && embedCfg.embedPreset) {
+                const ep = embedCfg.embedPreset;
                 this.updateViewMode('console');
+                setTimeout(async () => {
+                    try {
+                        await this.core.connect({
+                            id: ep.id || ('ext_' + ep.extension),
+                            extension: String(ep.extension),
+                            sipDomain: window.location.hostname || '127.0.0.1',
+                            wssUrl: ep.wssUrl || `wss://${window.location.host}/ws`,
+                            label: `Ext ${ep.extension}`
+                        }, ep.secret);
+                    } catch (err) {
+                        console.error('[Embed AutoConnect] Failed:', err);
+                    }
+                }, 100);
             } else {
-                this.updateViewMode('login');
+                if (this.core.regState === 'REGISTERED') {
+                    this.updateViewMode('console');
+                } else {
+                    this.updateViewMode('login');
+                }
+            }
+
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ version: 1, type: 'sokrat.voice.ready' }, '*');
             }
         }
 
@@ -8857,9 +8881,31 @@ select.input-text option {
 
         // --- CORE EVENT BINDINGS ---
         bindCoreEvents() {
-            this.core.on('regStateChange', ({ state }) => this.updateStatusUi(state));
+            this.core.on('regStateChange', ({ state }) => {
+                this.updateStatusUi(state);
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        version: 1,
+                        type: 'sokrat.voice.registration',
+                        payload: {
+                            state: state === 'REGISTERED' ? 'REGISTERED' : 'DISCONNECTED',
+                            extension: this.core.activePreset ? this.core.activePreset.extension : ''
+                        }
+                    }, '*');
+                }
+            });
             this.core.on('registered', () => {
                 this.updateViewMode('console');
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        version: 1,
+                        type: 'sokrat.voice.registration',
+                        payload: {
+                            state: 'REGISTERED',
+                            extension: this.core.activePreset ? this.core.activePreset.extension : ''
+                        }
+                    }, '*');
+                }
             });
             this.core.on('unregistered', () => {
                 if (this.core.activePreset) {
@@ -10776,9 +10822,9 @@ select.input-text option {
                 }
                 const data = event.data;
                 if (!data) return;
-                if (data.type === 'CLICK_TO_CALL' || data.type === 'DIAL' || data.action === 'call' || data.action === 'dial') {
-                    const raw = data.number || data.phone || data.target || data.ext;
-                    const autoCall = data.autoCall !== false && data.auto !== false;
+                if (data.type === 'sokrat.voice.dial' || data.type === 'CLICK_TO_CALL' || data.type === 'DIAL' || data.action === 'call' || data.action === 'dial') {
+                    const raw = data.payload?.phone || data.number || data.phone || data.target || data.ext;
+                    const autoCall = data.payload ? (data.payload.autoCall !== false) : (data.autoCall !== false && data.auto !== false);
                     const target = sanitize(raw);
                     if (target) {
                         this.clickToCall(target, autoCall);
