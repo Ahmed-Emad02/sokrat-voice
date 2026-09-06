@@ -1,12 +1,23 @@
 <!DOCTYPE html>
-<html lang="<%= currentLang %>" dir="<%= isRtl ? 'rtl' : 'ltr' %>">
+<html lang="<%= currentLang %>" dir="<%= isRtl ? 'rtl' : 'ltr' %>" class="<%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'is-embedded' : '' %>">
 <head>
     <script>
-        // Automatic HTTPS upgrade to ensure Secure Context for WebRTC microphone permission
-        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        // Automatic HTTPS upgrade to ensure Secure Context for WebRTC microphone permission (standalone top-level only)
+        if (window.self === window.top && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
             window.location.replace('https://' + window.location.host + window.location.pathname + window.location.search + window.location.hash);
         }
     </script>
+    <% if (typeof isEmbedded !== 'undefined' && isEmbedded) { %>
+    <script>
+        window.SOFTPHONE_EMBED_CONFIG = {
+            isEmbedded: true,
+            autoConnect: <%= typeof autoConnect !== 'undefined' && autoConnect ? 'true' : 'false' %>,
+            embedPreset: <%- JSON.stringify(embedPreset || null) %>,
+            parentOrigin: <%- JSON.stringify(parentOrigin || '*') %>,
+            maskPhoneNumbers: <%= typeof maskPhoneNumbers !== 'undefined' && maskPhoneNumbers ? 'true' : 'false' %>
+        };
+    </script>
+    <% } %>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= isRtl ? 'هاتف سوكرات الصوتي - Sokrat VOICE' : 'Sokrat VOICE' %></title>
@@ -190,8 +201,9 @@ body::before {
     z-index: 0;
 }
 
-/* Popout Window Auto-Fitting */
-body.is-popout, html.is-popout body {
+/* Popout & Embedded Window Auto-Fitting */
+body.is-popout, html.is-popout body,
+body.is-embedded, html.is-embedded body {
     padding: 0 !important;
     margin: 0 !important;
     width: 100vw !important;
@@ -201,7 +213,8 @@ body.is-popout, html.is-popout body {
     overflow-x: hidden !important;
 }
 
-body.is-popout .app-window, html.is-popout .app-window {
+body.is-popout .app-window, html.is-popout .app-window,
+body.is-embedded .app-window, html.is-embedded .app-window {
     width: 100vw !important;
     height: 100vh !important;
     max-width: 100vw !important;
@@ -4002,8 +4015,11 @@ select, option, optgroup {
     font-size: 11px !important;
     font-weight: 700 !important;
     padding: 2px 8px 2px 6px !important;
-    min-width: 80px !important;
-    max-width: 160px !important;
+    min-width: 70px !important;
+    max-width: 130px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     cursor: pointer !important;
     outline: none !important;
     transition: all 0.15s ease !important;
@@ -4627,10 +4643,89 @@ select.input-text option {
     background: #34d399 !important;
     box-shadow: 0 0 6px rgba(52, 211, 153, 0.6) !important;
 }
+/* ==========================================================================
+   EDGE-TO-EDGE EMBEDDED CRM SOFTPHONE (ZERO BLACKBARS, ZERO EMPTY TOP SPACE)
+   ========================================================================== */
+html.is-embedded,
+body.is-embedded {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #09090d !important;
+    display: block !important;
+}
+
+body.is-embedded::before {
+    display: none !important;
+}
+
+body.is-embedded .app-window,
+html.is-embedded .app-window {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #09090d !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Remove duplicate top titlebar in embedded CRM panel */
+body.is-embedded .app-titlebar {
+    display: none !important;
+}
+
+body.is-embedded .app-body {
+    flex: 1 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body.is-embedded .workspace {
+    flex: 1 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    padding: 6px 12px 6px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+body.is-embedded .sub-nav-tabs {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+}
+
+body.is-embedded .dialer-keypad-card {
+    padding: 6px 10px !important;
+    margin: 0 !important;
+}
+
+body.is-embedded .keypad-grid {
+    gap: 8px !important;
+}
 
     </style>
 </head>
-<body>
+<body class="<%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'is-embedded' : '' %>">
 <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -4656,7 +4751,7 @@ select.input-text option {
     </div>
 
     <!-- 1. DEDICATED SOFTPHONE LOGIN SCREEN -->
-    <div id="loginView" class="app-window login-window" style="display: flex;">
+    <div id="loginView" class="app-window login-window" style="display: <%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'none !important' : 'flex' %>;" <%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'hidden' : '' %>>
         <!-- Titlebar -->
         <div class="app-titlebar">
             <div class="app-titlebar-title">
@@ -4760,7 +4855,7 @@ select.input-text option {
     </div>
 
     <!-- 2. MAIN APP WINDOW CONTAINER (TELEPHONY CONSOLE) -->
-    <div id="mainAppWindow" class="app-window" style="display: none;">
+    <div id="mainAppWindow" class="app-window" style="display: <%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'flex !important' : 'none' %>;">
         
         <!-- Unified Modern Header (Single Aligned Row) -->
         <div class="app-titlebar">
@@ -4778,6 +4873,13 @@ select.input-text option {
                         </option>
                     <% }); %>
                 </select>
+                <% if (typeof isEmbedded !== 'undefined' && isEmbedded) { %>
+                <!-- Static Assigned Extension Badge (Hard-assigned to CRM user) -->
+                <div class="assigned-ext-badge" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); font-family: monospace; font-size: 11px; font-weight: 700; color: #ffffff;">
+                    <span id="customExtTriggerLabel">Ext <%= typeof embedPreset !== 'undefined' && embedPreset ? embedPreset.extension : (typeof extensions !== 'undefined' && extensions.length ? extensions[0].extension : '150') %></span>
+                </div>
+                <button type="button" id="connectBtn" class="compact-connect-btn" style="display: none !important;"></button>
+                <% } else { %>
                 <!-- Custom Stylized Extension Trigger & Popover -->
                 <div class="custom-ext-dropdown-container">
                     <button type="button" id="customExtTrigger" class="custom-ext-trigger" onclick="window.softphoneUi.toggleCustomExtDropdown(event)" title="Select Extension">
@@ -4794,13 +4896,16 @@ select.input-text option {
                 <button type="button" id="connectBtn" class="compact-connect-btn">
                     <%= isRtl ? 'اتصال' : 'Connect' %>
                 </button>
+                <% } %>
                 <div id="statusBadge" style="display: none;"><span id="statusText"><%= isRtl ? 'غير متصل' : 'Offline' %></span></div>
             </div>
 
             <div class="titlebar-actions">
+                <% if (typeof isEmbedded === 'undefined' || !isEmbedded) { %>
                 <button type="button" class="titlebar-btn" onclick="window.softphoneUi.openPresetModal()" title="<%= isRtl ? 'إدارة الحسابات' : 'Accounts' %>">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </button>
+                <% } %>
                 <button type="button" class="titlebar-btn" onclick="window.softphoneUi.openAudioModal()" title="<%= isRtl ? 'إعدادات الصوت' : 'Audio Settings' %>">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
                 </button>
@@ -6849,6 +6954,21 @@ select.input-text option {
             this.currentCallQuality = null;
             this.incomingNotification = null;
             this.attendedTransferState = null;
+            this.maskPhoneNumbers = Boolean(window.SOFTPHONE_EMBED_CONFIG?.maskPhoneNumbers);
+            this.realDialNumber = '';
+        }
+
+        maskPhoneNumber(num) {
+            if (!num) return '';
+            const clean = String(num).trim();
+            if (clean.length < 7) return clean;
+            const isPlus = clean.startsWith('+');
+            const prefixLen = isPlus ? 5 : 4;
+            const suffixLen = 3;
+            if (clean.length <= (prefixLen + suffixLen)) {
+                return clean.slice(0, 3) + '****' + clean.slice(-2);
+            }
+            return clean.slice(0, prefixLen) + '****' + clean.slice(-suffixLen);
         }
 
         async init() {
@@ -6879,11 +6999,16 @@ select.input-text option {
                 this.updateViewMode('console');
                 setTimeout(async () => {
                     try {
+                        let targetWss = ep.wssUrl || (window.location.protocol === 'https:' ? 'wss://100.110.36.17:8443/ws' : 'ws://100.110.36.17:8088/ws');
+                        if (window.location.protocol === 'http:' && targetWss.startsWith('wss://')) {
+                            targetWss = targetWss.replace(/^wss:/, 'ws:').replace(/:8443\//, ':8088/');
+                        }
                         await this.core.connect({
                             id: ep.id || ('ext_' + ep.extension),
                             extension: String(ep.extension),
-                            sipDomain: window.location.hostname || '127.0.0.1',
-                            wssUrl: ep.wssUrl || `wss://${window.location.host}/ws`,
+                            sipDomain: '100.110.36.17',
+                            wssUrl: targetWss,
+                            name: ep.name || ('Ext ' + ep.extension),
                             label: `Ext ${ep.extension}`
                         }, ep.secret);
                     } catch (err) {
@@ -8913,7 +9038,9 @@ select.input-text option {
                 }
             });
             this.core.on('authFailed', () => {
-                this.updateViewMode('login');
+                if (!window.SOFTPHONE_EMBED_CONFIG?.isEmbedded) {
+                    this.updateViewMode('login');
+                }
                 this.showToast(this.t.toastAuthFailed, 'error');
             });
             this.core.on('speakerLevel', (level) => {
@@ -9114,15 +9241,16 @@ select.input-text option {
 
                 const cardTitle = document.createElement('div');
                 cardTitle.className = 'text-xs font-bold text-muted';
+                const displayTarget = this.maskPhoneNumbers ? this.maskPhoneNumber(call.target) : call.target;
                 if (!call.answerTime) {
                     if (call.direction === 'incoming') {
-                        cardTitle.textContent = (this.currentLang === 'ar' ? 'مكالمة واردة من: ' : 'Incoming Call from: ') + call.target;
+                        cardTitle.textContent = (this.currentLang === 'ar' ? 'مكالمة واردة من: ' : 'Incoming Call from: ') + displayTarget;
                         cardTitle.style.color = '#10b981';
                     } else {
-                        cardTitle.textContent = (this.currentLang === 'ar' ? 'جاري الاتصال بـ: ' : 'Calling: ') + call.target;
+                        cardTitle.textContent = (this.currentLang === 'ar' ? 'جاري الاتصال بـ: ' : 'Calling: ') + displayTarget;
                     }
                 } else {
-                    cardTitle.textContent = `${this.t.activeCallTitle} ${call.target}`;
+                    cardTitle.textContent = `${this.t.activeCallTitle} ${displayTarget}`;
                 }
                 titleRow.appendChild(cardTitle);
 
@@ -9655,11 +9783,11 @@ select.input-text option {
                     nameSpan.textContent = contactMatch.name;
                     const numDiv = document.createElement('div');
                     numDiv.className = 'text-xs text-muted font-mono';
-                    numDiv.textContent = log.target;
+                    numDiv.textContent = this.maskPhoneNumbers ? this.maskPhoneNumber(log.target) : log.target;
                     info.appendChild(nameSpan);
                     info.appendChild(numDiv);
                 } else {
-                    nameSpan.textContent = log.target;
+                    nameSpan.textContent = this.maskPhoneNumbers ? this.maskPhoneNumber(log.target) : log.target;
                     info.appendChild(nameSpan);
                 }
 
@@ -9685,7 +9813,8 @@ select.input-text option {
                 setButtonContent(callBtn, SVG_ICONS.phone, '');
                 callBtn.title = 'Call';
                 callBtn.addEventListener('click', () => {
-                    this.dom.dialInput.value = log.target;
+                    this.realDialNumber = log.target;
+                    this.dom.dialInput.value = this.maskPhoneNumbers ? this.maskPhoneNumber(log.target) : log.target;
                     this.handleCallAction();
                 });
 
@@ -9763,6 +9892,14 @@ select.input-text option {
 
         async checkMicrophonePermissionInitial() {
             try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    await this.core.acquireMicrophone();
+                    if (this.dom.micBanner) this.dom.micBanner.style.display = 'none';
+                    return;
+                }
+            } catch (_) {}
+
+            try {
                 if (navigator.permissions && navigator.permissions.query) {
                     const res = await navigator.permissions.query({ name: 'microphone' });
                     if (res.state === 'granted') {
@@ -9772,7 +9909,9 @@ select.input-text option {
                     }
                 }
             } catch (_) {}
-            if (this.dom.micBanner) this.dom.micBanner.style.display = 'flex';
+            if (this.dom.micBanner && !window.navigator.userAgent.includes('Electron')) {
+                this.dom.micBanner.style.display = 'flex';
+            }
         }
 
         // --- DOM ACTIONS & HOTKEYS ---
@@ -9851,19 +9990,6 @@ select.input-text option {
                     const digit = btn.dataset.digit;
                     if (!digit) return;
                     this.dom.dialInput.value += digit;
-                    const activeCall = Array.from(this.core.activeCalls.values())[0];
-                    if (activeCall) {
-                        this.core.sendDtmf(activeCall.id, digit);
-                    } else {
-                        this.core.playDtmfSidetone(digit);
-                    }
-                });
-            });
-
-            // Preferences with Policy Lock Interceptors
-            this.dom.dndCheckbox.addEventListener('change', () => {
-                const preset = this.getSelectedPreset();
-                const extNum = preset ? String(preset.extension) : '';
                 const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
                 if (policy && policy.dnd !== 'user_choice') {
                     this.dom.dndCheckbox.checked = policy.dnd === 'force_on';
@@ -9945,10 +10071,13 @@ select.input-text option {
                 this.showToast(this.currentLang === 'ar' ? 'يوجد مكالمة نشطة بالفعل' : 'A call is already in progress', 'warning');
                 return;
             }
-            const num = this.dom.dialInput.value.trim();
+            const num = (this.realDialNumber && this.maskPhoneNumbers && this.dom.dialInput.value.includes('*'))
+                ? this.realDialNumber
+                : this.dom.dialInput.value.trim();
             if (!num) return;
             try {
                 this.core.makeCall(num);
+                this.realDialNumber = '';
             } catch (err) {
                 this.showToast(err.message, 'error');
             }
@@ -10772,12 +10901,6 @@ select.input-text option {
                 } catch (_) {
                     return String(val).replace(/["'>].*$/, '').replace(/[^\d+*#]/g, '').trim();
                 }
-            };
-
-            // 1. Process URL query parameters (?call=101 or ?dial=101)
-            const handleUrlParams = () => {
-                const params = new URLSearchParams(window.location.search);
-                const rawCall = params.get('call') || params.get('number') || params.get('phone');
                 const rawDial = params.get('dial');
                 const auto = params.get('auto') === '1' || params.get('auto') === 'true' || Boolean(rawCall);
 
@@ -10863,8 +10986,9 @@ select.input-text option {
             this.switchTab('dialer');
 
             // Populate input
+            this.realDialNumber = cleanNum;
             if (this.dom.dialInput) {
-                this.dom.dialInput.value = cleanNum;
+                this.dom.dialInput.value = this.maskPhoneNumbers ? this.maskPhoneNumber(cleanNum) : cleanNum;
             }
 
             if (autoCall) {
