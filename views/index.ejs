@@ -7048,7 +7048,20 @@ body.is-embedded .keypad-grid {
             }
 
             if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ version: 1, type: 'sokrat.voice.ready' }, '*');
+                window.parent.postMessage({
+                    version: 1,
+                    type: 'sokrat.voice.ready',
+                    payload: {
+                        inCall: this.core.activeCalls ? (this.core.activeCalls.size > 0) : false,
+                        activeCallsCount: this.core.activeCalls ? this.core.activeCalls.size : 0
+                    }
+                }, '*');
+            }
+
+            if (!this.core.activeCalls || this.core.activeCalls.size === 0) {
+                const endedMsg = { version: 1, type: 'sokrat.voice.call_state', payload: { state: 'ended' } };
+                if (window.parent && window.parent !== window) window.parent.postMessage(endedMsg, '*');
+                window.postMessage(endedMsg, '*');
             }
         }
 
