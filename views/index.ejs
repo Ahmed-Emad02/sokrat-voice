@@ -5494,7 +5494,15 @@ body.is-embedded .keypad-grid {
 
             try {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('MediaDevices API is unavailable. Ensure HTTPS connection.');
+                    console.warn('[Microphone] MediaDevices API unavailable on HTTP origin. Using WebAudio fallback stream.');
+                    this.initAudioContext();
+                    if (this.audioCtx && typeof this.audioCtx.createMediaStreamDestination === 'function') {
+                        const dest = this.audioCtx.createMediaStreamDestination();
+                        this.micStream = dest.stream;
+                        this.micPermissionGranted = false;
+                        return dest.stream;
+                    }
+                    return null;
                 }
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 this.micStream = stream;
@@ -6999,8 +7007,8 @@ body.is-embedded .keypad-grid {
             this.renderFavorites();
             this.renderContacts();
             this.renderSavedAccountsLoginList();
-            this.enumerateAudioDevices();
-            this.checkMicrophonePermissionInitial();
+            this.enumerateAudioDevices().catch(() => {});
+            this.checkMicrophonePermissionInitial().catch(() => {});
             this.requestNotificationPermissionInitial();
             this.startCallTimerTicker();
             this.updateInCallButtonStates();
