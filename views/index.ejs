@@ -2,8 +2,8 @@
 <html lang="<%= currentLang %>" dir="<%= isRtl ? 'rtl' : 'ltr' %>" class="<%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'is-embedded' : '' %>">
 <head>
     <script>
-        // Automatic HTTPS upgrade to ensure Secure Context for WebRTC microphone permission (standalone top-level only)
-        if (window.self === window.top && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        // Automatic HTTPS upgrade to ensure Secure Context for WebRTC microphone permission (standalone top-level only, never on port 8080 or in Electron)
+        if (window.self === window.top && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.navigator.userAgent.includes('Electron') && window.location.port !== '8080') {
             window.location.replace('https://' + window.location.host + window.location.pathname + window.location.search + window.location.hash);
         }
     </script>
