@@ -10948,6 +10948,12 @@ body.is-embedded .keypad-grid {
                 } catch (_) {
                     return String(val).replace(/["'>].*$/, '').replace(/[^\d+*#]/g, '').trim();
                 }
+            };
+
+            // 1. Process URL search parameters (?call=101 or ?dial=101)
+            const handleUrlParams = () => {
+                const params = new URLSearchParams(window.location.search);
+                const rawCall = params.get('call') || params.get('number') || params.get('phone');
                 const rawDial = params.get('dial');
                 const auto = params.get('auto') === '1' || params.get('auto') === 'true' || Boolean(rawCall);
 
