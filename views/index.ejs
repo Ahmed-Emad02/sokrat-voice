@@ -4730,13 +4730,32 @@ body.is-embedded .sub-nav-tabs {
     margin-bottom: 8px !important;
 }
 
-body.is-embedded .dialer-keypad-card {
-    padding: 6px 10px !important;
+body.is-embedded .dialer-col {
+    max-width: 100% !important;
+    width: 100% !important;
     margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.is-embedded .active-call-hero {
+    margin: 0 0 6px 0 !important;
+    padding: 8px 10px !important;
+}
+
+body.is-embedded .hero-audio-deck {
+    padding: 3px 6px !important;
+    margin: 3px 0 5px !important;
+    gap: 3px !important;
 }
 
 body.is-embedded .keypad-grid {
-    gap: 8px !important;
+    gap: 6px !important;
+    max-width: 100% !important;
+}
+
+body.is-embedded .keypad-btn {
+    width: 48px !important;
+    height: 48px !important;
 }
 
     </style>
@@ -9260,13 +9279,33 @@ body.is-embedded .keypad-grid {
         startCallTimerTicker() {
             if (this.callTimerInterval) clearInterval(this.callTimerInterval);
             this.callTimerInterval = setInterval(() => {
+                let firstFormatted = null;
+                let firstSec = null;
                 document.querySelectorAll('[data-timer-start]').forEach(el => {
                     const start = parseInt(el.dataset.timerStart, 10);
                     if (start > 0) {
                         const sec = Math.max(0, Math.floor((Date.now() - start) / 1000));
-                        el.textContent = this.formatDuration(sec);
+                        const formatted = this.formatDuration(sec);
+                        el.textContent = formatted;
+                        if (firstFormatted === null) {
+                            firstFormatted = formatted;
+                            firstSec = sec;
+                        }
                     }
                 });
+
+                if (firstFormatted !== null) {
+                    const syncMsg = {
+                        version: 1,
+                        type: 'sokrat.voice.timer_sync',
+                        payload: {
+                            seconds: firstSec,
+                            formatted: firstFormatted
+                        }
+                    };
+                    if (window.parent && window.parent !== window) window.parent.postMessage(syncMsg, '*');
+                    window.postMessage(syncMsg, '*');
+                }
             }, 1000);
         }
 
