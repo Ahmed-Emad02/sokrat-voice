@@ -4717,7 +4717,7 @@ body.is-embedded .workspace {
     flex: 1 !important;
     height: 100% !important;
     max-height: 100% !important;
-    padding: 4px 6px !important;
+    padding: 6px 12px 6px !important;
     margin: 0 !important;
     overflow: hidden !important;
     display: flex !important;
@@ -4727,7 +4727,7 @@ body.is-embedded .workspace {
 
 body.is-embedded .sub-nav-tabs {
     margin-top: 0 !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
 }
 
 body.is-embedded .dialer-col {
@@ -4758,63 +4758,6 @@ body.is-embedded .keypad-btn {
     height: 48px !important;
 }
 
-/* Compact, Non-Clipping Contact Cards */
-body.is-embedded .recent-card {
-    padding: 6px 8px !important;
-    gap: 5px !important;
-    border-radius: 12px !important;
-    margin-bottom: 5px !important;
-}
-
-body.is-embedded .recent-avatar {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 11px !important;
-    flex-shrink: 0 !important;
-}
-
-body.is-embedded .recent-left {
-    gap: 6px !important;
-    min-width: 0 !important;
-    flex: 1 1 auto !important;
-    overflow: hidden !important;
-}
-
-body.is-embedded .recent-right {
-    gap: 2px !important;
-    flex-shrink: 0 !important;
-    margin-left: auto !important;
-}
-
-body.is-embedded .recent-call-btn {
-    width: 26px !important;
-    height: 26px !important;
-    min-width: 26px !important;
-    min-height: 26px !important;
-    border-radius: 50% !important;
-    flex-shrink: 0 !important;
-}
-
-body.is-embedded .recent-call-btn svg {
-    width: 12px !important;
-    height: 12px !important;
-}
-
-body.is-embedded .contacts-list {
-    max-height: calc(100vh - 85px) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding-right: 2px !important;
-    padding-bottom: 16px !important;
-}
-
-body.is-embedded .contacts-sec {
-    height: 100% !important;
-    max-height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-}
     </style>
 </head>
 <body class="<%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'is-embedded' : '' %>">
