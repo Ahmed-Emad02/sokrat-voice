@@ -10006,23 +10006,31 @@ body.is-embedded .keypad-grid {
                     const digit = btn.dataset.digit;
                     if (!digit) return;
                     this.dom.dialInput.value += digit;
-                const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
-                if (policy && policy.dnd !== 'user_choice') {
-                    this.dom.dndCheckbox.checked = policy.dnd === 'force_on';
-                    this.showToast(policy.dnd === 'force_on' ? 'DND is locked ON by Administrator' : 'DND is prohibited by Administrator', 'warning');
-                    return;
-                }
-                this.core.isDnd = this.dom.dndCheckbox.checked;
-                if (this.dom.toolBtnDnd) this.dom.toolBtnDnd.classList.toggle('active-dnd', this.core.isDnd);
-                if (preset) {
-                    preset.dnd = this.core.isDnd;
-                    let presets = this.getPresets();
-                    const idx = presets.findIndex(p => p.id === preset.id);
-                    if (idx >= 0) presets[idx].dnd = preset.dnd;
-                    this.savePresets(presets);
-                }
-                this.showToast(this.core.isDnd ? 'DND Enabled (Busy Here)' : 'DND Disabled', this.core.isDnd ? 'warning' : 'info');
+                });
             });
+
+            if (this.dom.dndCheckbox) {
+                this.dom.dndCheckbox.addEventListener('change', () => {
+                    const preset = this.getSelectedPreset();
+                    const extNum = preset ? String(preset.extension) : '';
+                    const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
+                    if (policy && policy.dnd !== 'user_choice') {
+                        this.dom.dndCheckbox.checked = policy.dnd === 'force_on';
+                        this.showToast(policy.dnd === 'force_on' ? 'DND is locked ON by Administrator' : 'DND is prohibited by Administrator', 'warning');
+                        return;
+                    }
+                    this.core.isDnd = this.dom.dndCheckbox.checked;
+                    if (this.dom.toolBtnDnd) this.dom.toolBtnDnd.classList.toggle('active-dnd', this.core.isDnd);
+                    if (preset) {
+                        preset.dnd = this.core.isDnd;
+                        let presets = this.getPresets();
+                        const idx = presets.findIndex(p => p.id === preset.id);
+                        if (idx >= 0) presets[idx].dnd = preset.dnd;
+                        this.savePresets(presets);
+                    }
+                    this.showToast(this.core.isDnd ? 'DND Enabled (Busy Here)' : 'DND Disabled', this.core.isDnd ? 'warning' : 'info');
+                });
+            }
 
             this.dom.autoAnswerCheckbox.addEventListener('change', () => {
                 const preset = this.getSelectedPreset();
