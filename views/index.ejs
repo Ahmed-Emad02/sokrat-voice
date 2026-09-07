@@ -9077,26 +9077,54 @@ body.is-embedded .keypad-grid {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.showIncomingNotification(callEntry);
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.incoming',
+                    payload: { phone: callEntry?.target || 'Unknown', callId: callEntry?.id }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
-            this.core.on('callProgress', () => {
+            this.core.on('callProgress', (callEntry) => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.call_state',
+                    payload: { state: 'ringing', phone: callEntry?.target || '' }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
-            this.core.on('callAnswered', () => {
+            this.core.on('callAnswered', (callEntry) => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.dismissNotification();
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.call_state',
+                    payload: { state: 'in_call', phone: callEntry?.target || '', callId: callEntry?.id }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
             this.core.on('callUpdated', () => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
             });
-            this.core.on('callEnded', () => {
+            this.core.on('callEnded', (data) => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.dismissNotification();
                 this.currentCallQuality = null;
                 this.attendedTransferState = null;
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.call_state',
+                    payload: { state: 'ended', callId: data?.callId }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
             this.core.on('callLog', (logEntry) => this.addCallLog({ ...logEntry, line: 'line1' }));
             this.core.on('toast', ({ type, message }) => this.showToast(message, type));
