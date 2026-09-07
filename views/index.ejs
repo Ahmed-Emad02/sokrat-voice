@@ -7,6 +7,22 @@
             window.location.replace('https://' + window.location.host + window.location.pathname + window.location.search + window.location.hash);
         }
     </script>
+    <script>
+        // Safe early stub for window.softphoneUi to prevent Uncaught TypeError before full boot
+        window.softphoneUi = new Proxy({}, {
+            get(target, prop) {
+                if (window._realSoftphoneUi && typeof window._realSoftphoneUi[prop] !== 'undefined') {
+                    const val = window._realSoftphoneUi[prop];
+                    return typeof val === 'function' ? val.bind(window._realSoftphoneUi) : val;
+                }
+                return (...args) => {
+                    if (window._realSoftphoneUi && typeof window._realSoftphoneUi[prop] === 'function') {
+                        return window._realSoftphoneUi[prop](...args);
+                    }
+                };
+            }
+        });
+    </script>
     <% if (typeof isEmbedded !== 'undefined' && isEmbedded) { %>
     <script>
         window.SOFTPHONE_EMBED_CONFIG = {
@@ -4933,15 +4949,15 @@ body.is-embedded .keypad-grid {
 
                 <!-- Sub Navigation Top Bar -->
                 <div class="sub-nav-tabs">
-                    <button type="button" class="sub-nav-tab active" id="tabBtnDialer" onclick="window.softphoneUi.switchTab('dialer')">
+                    <button type="button" class="sub-nav-tab active" id="tabBtnDialer" onclick="window.softphoneUi?.switchTab?.('dialer')">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                         <span><%= isRtl ? 'لوحة الاتصال' : 'Dialer' %></span>
                     </button>
-                    <button type="button" class="sub-nav-tab" id="tabBtnContacts" onclick="window.softphoneUi.switchTab('contacts')">
+                    <button type="button" class="sub-nav-tab" id="tabBtnContacts" onclick="window.softphoneUi?.switchTab?.('contacts')">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         <span><%= isRtl ? 'جهات الاتصال' : 'Contacts' %></span>
                     </button>
-                    <button type="button" class="sub-nav-tab" id="tabBtnHistory" onclick="window.softphoneUi.switchTab('history')">
+                    <button type="button" class="sub-nav-tab" id="tabBtnHistory" onclick="window.softphoneUi?.switchTab?.('history')">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         <span><%= isRtl ? 'سجل المكالمات' : 'Recent Calls' %></span>
                     </button>
@@ -11029,9 +11045,10 @@ body.is-embedded .keypad-grid {
     }
 
     function startSoftphoneApp() {
-        if (!window.softphoneUi) {
-            window.softphoneUi = new SokratSoftphoneUI();
-            window.softphoneUi.init();
+        if (!window._realSoftphoneUi) {
+            window._realSoftphoneUi = new SokratSoftphoneUI();
+            window.softphoneUi = window._realSoftphoneUi;
+            window._realSoftphoneUi.init();
         }
     }
 
