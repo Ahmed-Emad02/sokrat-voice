@@ -9113,10 +9113,16 @@ body.is-embedded .keypad-grid {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.dismissNotification();
+                const startTimeMs = (callEntry?.answerTime instanceof Date) ? callEntry.answerTime.getTime() : Date.now();
                 const msg = {
                     version: 1,
                     type: 'sokrat.voice.call_state',
-                    payload: { state: 'in_call', phone: callEntry?.target || '', callId: callEntry?.id }
+                    payload: {
+                        state: 'in_call',
+                        phone: callEntry?.target || '',
+                        callId: callEntry?.id,
+                        startTime: startTimeMs
+                    }
                 };
                 if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
                 window.postMessage(msg, '*');
@@ -11054,9 +11060,18 @@ body.is-embedded .keypad-grid {
                     if (target) {
                         this.clickToCall(target, autoCall);
                     }
+                } else if (data.type === 'sokrat.voice.hangup' || data.type === 'HANGUP' || data.action === 'hangup') {
+                    const activeCall = Array.from(this.core.activeCalls.values())[0];
+                    if (activeCall) {
+                        this.core.hangupCall(activeCall.id);
+                    }
+                } else if (data.type === 'sokrat.voice.toggle_mute' || data.type === 'MUTE' || data.action === 'mute' || data.action === 'toggle_mute') {
+                    const activeCall = Array.from(this.core.activeCalls.values())[0];
+                    if (activeCall) {
+                        this.core.toggleMute(activeCall.id);
+                    }
                 }
             });
-
             // 4. BroadcastChannel Listener (for multi-tab / Sokrat VoIP dashboard integration)
             try {
                 if (typeof BroadcastChannel !== 'undefined') {
@@ -11070,11 +11085,16 @@ body.is-embedded .keypad-grid {
                             if (target) {
                                 this.clickToCall(target, autoCall);
                             }
+                        } else if (data && (data.type === 'sokrat.voice.hangup' || data.type === 'HANGUP' || data.action === 'hangup')) {
+                            const activeCall = Array.from(this.core.activeCalls.values())[0];
+                            if (activeCall) this.core.hangupCall(activeCall.id);
+                        } else if (data && (data.type === 'sokrat.voice.toggle_mute' || data.type === 'MUTE' || data.action === 'mute')) {
+                            const activeCall = Array.from(this.core.activeCalls.values())[0];
+                            if (activeCall) this.core.toggleMute(activeCall.id);
                         }
                     });
                 }
             } catch (_) {}
-
             // 5. Global helper functions
             window.sokratClickToCall = (number, autoCall = true) => this.clickToCall(sanitize(number), autoCall);
             window.softphoneClickToCall = (number, autoCall = true) => this.clickToCall(sanitize(number), autoCall);
