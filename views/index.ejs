@@ -9140,27 +9140,27 @@ body.is-embedded .keypad-grid {
                     this.dom.statusText.textContent = this.t.statusConnecting;
                     this.dom.connectBtn.textContent = this.t.cancel || 'Cancel';
                     this.dom.connectBtn.className = 'btn btn-danger';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'RETRY_WAIT':
                     this.dom.statusBadge.classList.add('ringing');
                     this.dom.connectBtn.textContent = this.t.cancel || 'Cancel';
                     this.dom.connectBtn.className = 'btn btn-danger';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'AUTH_FAILED':
                     this.dom.statusBadge.classList.add('incall');
                     this.dom.statusText.textContent = this.t.statusAuthFailed;
                     this.dom.connectBtn.textContent = this.t.connect;
                     this.dom.connectBtn.className = 'btn btn-primary';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'DISCONNECTED':
                 default:
                     this.dom.statusText.textContent = this.t.statusOffline;
                     this.dom.connectBtn.textContent = this.t.connect;
                     this.dom.connectBtn.className = 'btn btn-primary';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
             }
         }
@@ -9172,7 +9172,7 @@ body.is-embedded .keypad-grid {
             const currentCall = calls[0] || null;
 
             if (this.dom.callBtn) {
-                this.dom.callBtn.disabled = inCall || (this.core.regState !== 'REGISTERED');
+                this.dom.callBtn.disabled = inCall;
             }
 
             const line2CallBtn = document.getElementById('line2CallBtn');
@@ -10099,6 +10099,29 @@ body.is-embedded .keypad-grid {
                 ? this.realDialNumber
                 : this.dom.dialInput.value.trim();
             if (!num) return;
+
+            if (this.core.regState !== 'REGISTERED') {
+                this.pendingCallTarget = num;
+                this.showToast(this.currentLang === 'ar' ? `جاري الاتصال بالسنترال لطلب ${num}...` : `Connecting to call ${num}...`, 'info');
+                const preset = this.getSelectedPreset();
+                const secret = preset ? (preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '') : '';
+                if (preset && secret) {
+                    this.core.connect(preset, secret).catch(() => {});
+                }
+                this.core.once('registered', () => {
+                    if (this.pendingCallTarget === num) {
+                        setTimeout(() => {
+                            if (this.pendingCallTarget === num) {
+                                this.core.makeCall(num);
+                                this.pendingCallTarget = null;
+                                this.realDialNumber = '';
+                            }
+                        }, 300);
+                    }
+                });
+                return;
+            }
+
             try {
                 this.core.makeCall(num);
                 this.realDialNumber = '';
