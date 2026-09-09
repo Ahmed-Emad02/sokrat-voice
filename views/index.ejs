@@ -6751,10 +6751,23 @@ body.is-embedded .keypad-btn {
                     this.startRingtone();
                 }
                 this.emit('incomingCall', callEntry);
-                if (this.isAutoAnswer && this.micPermissionGranted) {
+                // Auto-Answer if client toggle is on OR if SIP headers indicate auto-answer (dialer/intercom)
+                let shouldAutoAnswer = Boolean(this.isAutoAnswer);
+                try {
+                    const req = session.request;
+                    if (req && typeof req.getHeader === 'function') {
+                        const callInfo = req.getHeader('Call-Info') || '';
+                        const alertInfo = req.getHeader('Alert-Info') || '';
+                        if (/answer-after=0/i.test(callInfo) || /autoanswer|ring answer|intercom/i.test(alertInfo)) {
+                            shouldAutoAnswer = true;
+                        }
+                    }
+                } catch (_) {}
+
+                if (shouldAutoAnswer && this.micPermissionGranted) {
                     setTimeout(() => {
                         this.answerCall(callId);
-                    }, 400);
+                    }, 300);
                 }
             } else {
                 this.startRingback();
