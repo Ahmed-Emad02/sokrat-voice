@@ -308,8 +308,23 @@
             this.dom.takeOverOverlay = document.getElementById('takeOverOverlay');
             this.dom.toastContainer = document.getElementById('toastContainer');
             this.dom.remoteAudio = document.getElementById('remoteAudio');
+            this.dom.ringAudio = document.getElementById('ringAudio');
+            if (this.dom.ringAudio) {
+                this.core.setRingAudioElement(this.dom.ringAudio);
+            }
             this.dom.audioInputSelect = document.getElementById('audioInputSelect');
             this.dom.audioOutputSelect = document.getElementById('audioOutputSelect');
+            this.dom.audioRingSelect = document.getElementById('audioRingSelect');
+            this.dom.ringVolumeSlider = document.getElementById('ringVolumeSlider');
+            this.dom.ringVolumeVal = document.getElementById('ringVolumeVal');
+            this.dom.ecCheckbox = document.getElementById('ecCheckbox');
+            this.dom.nsCheckbox = document.getElementById('nsCheckbox');
+            this.dom.agcCheckbox = document.getElementById('agcCheckbox');
+            this.dom.stunCheckbox = document.getElementById('stunCheckbox');
+            this.dom.stunServerInput = document.getElementById('stunServerInput');
+            this.dom.singleCallCheckbox = document.getElementById('singleCallCheckbox');
+            this.dom.callWaitingCheckbox = document.getElementById('callWaitingCheckbox');
+            this.dom.dtmfMethodSelect = document.getElementById('dtmfMethodSelect');
             this.dom.dndCheckbox = document.getElementById('dndCheckbox');
             this.dom.autoAnswerCheckbox = document.getElementById('autoAnswerCheckbox');
             this.dom.presetModal = document.getElementById('presetModal');
@@ -2695,8 +2710,7 @@
                             e.stopPropagation();
                             try {
                                 if (call.session) {
-                                    call.session.sendDTMF(k);
-                                    this.core.playDtmfSidetone(k);
+                                    this.core.sendDTMF(call.id, k);
                                     const display = document.getElementById(`dtmfDisplay_${call.id}`);
                                     if (display) {
                                         display.textContent += k;
@@ -3157,9 +3171,39 @@
         }
 
         // --- HARDWARE AUDIO DEVICES ---
+        // --- HARDWARE AUDIO & SETTINGS MODAL ---
+        switchSettingsTab(tabName) {
+            const tabs = ['Audio', 'Dsp', 'Calls'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`settingsTabBtn${t}`);
+                const content = document.getElementById(`settingsTabContent${t}`);
+                if (btn) btn.classList.toggle('active', t.toLowerCase() === tabName.toLowerCase());
+                if (content) content.style.display = (t.toLowerCase() === tabName.toLowerCase()) ? 'block' : 'none';
+            });
+        }
+
         async openAudioModal() {
             document.getElementById('audioModal').classList.remove('hidden');
+            this.switchSettingsTab('audio');
             await this.enumerateAudioDevices();
+            this.syncSettingsToUi();
+        }
+
+        syncSettingsToUi() {
+            if (this.dom.ringVolumeSlider) {
+                this.dom.ringVolumeSlider.value = this.core.ringVolume ?? 100;
+            }
+            if (this.dom.ringVolumeVal) {
+                this.dom.ringVolumeVal.textContent = `${this.core.ringVolume ?? 100}%`;
+            }
+            if (this.dom.ecCheckbox) this.dom.ecCheckbox.checked = Boolean(this.core.echoCancellation);
+            if (this.dom.nsCheckbox) this.dom.nsCheckbox.checked = Boolean(this.core.noiseSuppression);
+            if (this.dom.agcCheckbox) this.dom.agcCheckbox.checked = Boolean(this.core.autoGainControl);
+            if (this.dom.stunCheckbox) this.dom.stunCheckbox.checked = Boolean(this.core.stunEnabled);
+            if (this.dom.stunServerInput) this.dom.stunServerInput.value = this.core.stunServer || '';
+            if (this.dom.singleCallCheckbox) this.dom.singleCallCheckbox.checked = Boolean(this.core.singleCallMode);
+            if (this.dom.callWaitingCheckbox) this.dom.callWaitingCheckbox.checked = Boolean(this.core.callWaiting);
+            if (this.dom.dtmfMethodSelect) this.dom.dtmfMethodSelect.value = this.core.dtmfMethod || 'AUTO';
         }
 
         async enumerateAudioDevices() {
@@ -3174,40 +3218,62 @@
                     } catch (_) {}
                 }
 
-                this.dom.audioInputSelect.textContent = '';
-                this.dom.audioOutputSelect.textContent = '';
+                if (this.dom.audioInputSelect) this.dom.audioInputSelect.textContent = '';
+                if (this.dom.audioOutputSelect) this.dom.audioOutputSelect.textContent = '';
+                if (this.dom.audioRingSelect) this.dom.audioRingSelect.textContent = '';
 
                 const audioInputs = devices.filter(d => d.kind === 'audioinput');
                 const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
 
-                if (audioInputs.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'Default Microphone (System)';
-                    this.dom.audioInputSelect.appendChild(opt);
-                } else {
-                    audioInputs.forEach((dev, idx) => {
+                if (this.dom.audioInputSelect) {
+                    if (audioInputs.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = dev.deviceId;
-                        opt.textContent = dev.label || `Microphone ${idx + 1}`;
-                        if (this.core.selectedAudioInputId === dev.deviceId) opt.selected = true;
+                        opt.value = '';
+                        opt.textContent = 'Default Microphone (System)';
                         this.dom.audioInputSelect.appendChild(opt);
-                    });
+                    } else {
+                        audioInputs.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.deviceId;
+                            opt.textContent = dev.label || `Microphone ${idx + 1}`;
+                            if (this.core.selectedAudioInputId === dev.deviceId) opt.selected = true;
+                            this.dom.audioInputSelect.appendChild(opt);
+                        });
+                    }
                 }
 
-                if (audioOutputs.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'Default Speaker (System)';
-                    this.dom.audioOutputSelect.appendChild(opt);
-                } else {
-                    audioOutputs.forEach((dev, idx) => {
+                if (this.dom.audioOutputSelect) {
+                    if (audioOutputs.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = dev.deviceId;
-                        opt.textContent = dev.label || `Speaker ${idx + 1}`;
-                        if (this.core.selectedAudioOutputId === dev.deviceId) opt.selected = true;
+                        opt.value = '';
+                        opt.textContent = 'Default Speaker (System)';
                         this.dom.audioOutputSelect.appendChild(opt);
-                    });
+                    } else {
+                        audioOutputs.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.deviceId;
+                            opt.textContent = dev.label || `Speaker ${idx + 1}`;
+                            if (this.core.selectedAudioOutputId === dev.deviceId) opt.selected = true;
+                            this.dom.audioOutputSelect.appendChild(opt);
+                        });
+                    }
+                }
+
+                if (this.dom.audioRingSelect) {
+                    if (audioOutputs.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'Default Ring Device (System)';
+                        this.dom.audioRingSelect.appendChild(opt);
+                    } else {
+                        audioOutputs.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.deviceId;
+                            opt.textContent = dev.label || `Ring Device ${idx + 1}`;
+                            if (this.core.selectedRingOutputId === dev.deviceId) opt.selected = true;
+                            this.dom.audioRingSelect.appendChild(opt);
+                        });
+                    }
                 }
             } catch (err) {
                 console.warn('Device enumeration warning:', err);
@@ -3219,6 +3285,10 @@
             this.showToast(this.currentLang === 'ar' ? 'جاري تشغيل نغمة اختبار الصوت 🔔' : 'Playing audio test chime 🔔', 'info');
         }
 
+        testRingOutput() {
+            this.core.playTestRingChime();
+            this.showToast(this.currentLang === 'ar' ? 'تشغيل نغمة اختبار الرنين 🔔' : 'Playing ring test chime 🔔', 'info');
+        }
         async checkMicrophonePermissionInitial() {
             try {
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -3381,6 +3451,63 @@
                 await this.core.setOutputDevice(deviceId);
                 this.showToast('Speaker updated', 'info');
             });
+            if (this.dom.audioRingSelect) {
+                this.dom.audioRingSelect.addEventListener('change', async () => {
+                    const deviceId = this.dom.audioRingSelect.value;
+                    await this.core.setRingDevice(deviceId);
+                    this.showToast('Ring device updated', 'info');
+                });
+            }
+
+            if (this.dom.ringVolumeSlider) {
+                this.dom.ringVolumeSlider.addEventListener('input', () => {
+                    const val = Number(this.dom.ringVolumeSlider.value);
+                    this.core.setRingVolume(val);
+                    if (this.dom.ringVolumeVal) this.dom.ringVolumeVal.textContent = `${val}%`;
+                });
+            }
+
+            const updateDsp = () => {
+                this.core.setAudioProcessing({
+                    echoCancellation: this.dom.ecCheckbox ? this.dom.ecCheckbox.checked : true,
+                    noiseSuppression: this.dom.nsCheckbox ? this.dom.nsCheckbox.checked : true,
+                    autoGainControl: this.dom.agcCheckbox ? this.dom.agcCheckbox.checked : true
+                });
+                this.showToast('Audio processing updated', 'info');
+            };
+            if (this.dom.ecCheckbox) this.dom.ecCheckbox.addEventListener('change', updateDsp);
+            if (this.dom.nsCheckbox) this.dom.nsCheckbox.addEventListener('change', updateDsp);
+            if (this.dom.agcCheckbox) this.dom.agcCheckbox.addEventListener('change', updateDsp);
+
+            const updateStun = () => {
+                const enabled = this.dom.stunCheckbox ? this.dom.stunCheckbox.checked : false;
+                const server = this.dom.stunServerInput ? this.dom.stunServerInput.value : '';
+                this.core.setStunConfig(enabled, server);
+                this.showToast('STUN/ICE configuration updated', 'info');
+            };
+            if (this.dom.stunCheckbox) this.dom.stunCheckbox.addEventListener('change', updateStun);
+            if (this.dom.stunServerInput) this.dom.stunServerInput.addEventListener('change', updateStun);
+
+            if (this.dom.singleCallCheckbox) {
+                this.dom.singleCallCheckbox.addEventListener('change', () => {
+                    this.core.setSingleCallMode(this.dom.singleCallCheckbox.checked);
+                    this.showToast(this.core.singleCallMode ? 'Single Call Mode enabled' : 'Single Call Mode disabled', 'info');
+                });
+            }
+
+            if (this.dom.callWaitingCheckbox) {
+                this.dom.callWaitingCheckbox.addEventListener('change', () => {
+                    this.core.setCallWaiting(this.dom.callWaitingCheckbox.checked);
+                    this.showToast(this.core.callWaiting ? 'Call Waiting enabled' : 'Call Waiting disabled', 'info');
+                });
+            }
+
+            if (this.dom.dtmfMethodSelect) {
+                this.dom.dtmfMethodSelect.addEventListener('change', () => {
+                    this.core.setDtmfMethod(this.dom.dtmfMethodSelect.value);
+                    this.showToast(`DTMF method set to ${this.core.dtmfMethod}`, 'info');
+                });
+            }
 
             // Global Keyboard Shortcuts
             window.addEventListener('keydown', (e) => {

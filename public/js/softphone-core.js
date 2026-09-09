@@ -44,6 +44,24 @@
             this.vuAnalyser = null;
             this.vuTimer = null;
             this.remoteAudioEl = null;
+            this.ringAudioEl = null;
+            this.ringDestination = null;
+            this.selectedRingOutputId = (typeof localStorage !== 'undefined' ? localStorage.getItem('sokrat_ring_device_id') : '') || '';
+            this.ringVolume = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_ring_volume') !== null) ? Number(localStorage.getItem('sokrat_ring_volume')) : 100;
+
+            // Audio Processing (WebRTC constraints)
+            this.echoCancellation = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_echo_cancellation') !== null) ? localStorage.getItem('sokrat_echo_cancellation') === 'true' : true;
+            this.noiseSuppression = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_noise_suppression') !== null) ? localStorage.getItem('sokrat_noise_suppression') === 'true' : true;
+            this.autoGainControl = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_auto_gain_control') !== null) ? localStorage.getItem('sokrat_auto_gain_control') === 'true' : true;
+
+            // Network & STUN
+            this.stunEnabled = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_stun_enabled') !== null) ? localStorage.getItem('sokrat_stun_enabled') === 'true' : false;
+            this.stunServer = (typeof localStorage !== 'undefined' ? localStorage.getItem('sokrat_stun_server') : '') || 'stun:stun.l.google.com:19302';
+
+            // Call Behavior
+            this.singleCallMode = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_single_call_mode') !== null) ? localStorage.getItem('sokrat_single_call_mode') === 'true' : false;
+            this.callWaiting = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_call_waiting') !== null) ? localStorage.getItem('sokrat_call_waiting') === 'true' : true;
+            this.dtmfMethod = (typeof localStorage !== 'undefined' ? localStorage.getItem('sokrat_dtmf_method') : '') || 'AUTO';
 
             // Ringtones & Sidetones
             this.ringtoneGain = null;
@@ -51,7 +69,6 @@
             this.ringtoneTimer = null;
             this.ringbackOsc = null;
             this.ringbackTimer = null;
-
             // Reconnection & Quality
             this.reconnectTimer = null;
             this.reconnectAttempt = 0;
@@ -243,14 +260,121 @@
                 this.remoteAudioEl.setSinkId(this.selectedAudioOutputId).catch(() => {});
             }
         }
+        setRingAudioElement(el) {
+            this.ringAudioEl = el;
+            if (this.ringAudioEl) {
+                this.ringAudioEl.autoplay = true;
+                this.ringAudioEl.playsInline = true;
+            }
+            if (this.selectedRingOutputId && this.ringAudioEl && typeof this.ringAudioEl.setSinkId === 'function') {
+                this.ringAudioEl.setSinkId(this.selectedRingOutputId).catch(() => {});
+            }
+        }
+
+        async setRingDevice(deviceId) {
+            this.selectedRingOutputId = deviceId;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_ring_device_id', deviceId);
+            }
+            if (this.ringAudioEl && typeof this.ringAudioEl.setSinkId === 'function') {
+                try {
+                    await this.ringAudioEl.setSinkId(deviceId);
+                    this.emit('ringDeviceChanged', { deviceId });
+                } catch (err) {
+                    this.emit('ringDeviceError', { error: err.message });
+                }
+            }
+        }
+
+        setRingVolume(val) {
+            const clamped = Math.max(0, Math.min(100, Number(val) ?? 100));
+            this.ringVolume = clamped;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_ring_volume', clamped);
+            }
+            if (this.masterRingtoneGain && this.audioCtx) {
+                try {
+                    this.masterRingtoneGain.gain.setValueAtTime(0.22 * (clamped / 100), this.audioCtx.currentTime);
+                } catch (_) {}
+            }
+            this.emit('ringVolumeChanged', { volume: clamped });
+        }
+
+        setAudioProcessing({ echoCancellation, noiseSuppression, autoGainControl }) {
+            if (typeof echoCancellation === 'boolean') {
+                this.echoCancellation = echoCancellation;
+                if (typeof localStorage !== 'undefined') localStorage.setItem('sokrat_echo_cancellation', echoCancellation);
+            }
+            if (typeof noiseSuppression === 'boolean') {
+                this.noiseSuppression = noiseSuppression;
+                if (typeof localStorage !== 'undefined') localStorage.setItem('sokrat_noise_suppression', noiseSuppression);
+            }
+            if (typeof autoGainControl === 'boolean') {
+                this.autoGainControl = autoGainControl;
+                if (typeof localStorage !== 'undefined') localStorage.setItem('sokrat_auto_gain_control', autoGainControl);
+            }
+            if (this.micPermissionGranted) {
+                this.acquireMicrophone(this.selectedAudioInputId).catch(() => {});
+            }
+            this.emit('audioProcessingChanged', {
+                echoCancellation: this.echoCancellation,
+                noiseSuppression: this.noiseSuppression,
+                autoGainControl: this.autoGainControl
+            });
+        }
+
+        getStunIceServers() {
+            if (this.stunEnabled && this.stunServer) {
+                const urls = this.stunServer.trim().split(',').map(s => s.trim()).filter(Boolean);
+                if (urls.length > 0) {
+                    return [{ urls }];
+                }
+            }
+            return [];
+        }
+
+        setStunConfig(enabled, server) {
+            this.stunEnabled = Boolean(enabled);
+            if (typeof server === 'string') this.stunServer = server.trim();
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_stun_enabled', this.stunEnabled);
+                localStorage.setItem('sokrat_stun_server', this.stunServer);
+            }
+            this.emit('stunConfigChanged', { enabled: this.stunEnabled, server: this.stunServer });
+        }
+
+        setSingleCallMode(enabled) {
+            this.singleCallMode = Boolean(enabled);
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_single_call_mode', this.singleCallMode);
+            }
+            this.emit('singleCallModeChanged', { singleCallMode: this.singleCallMode });
+        }
+
+        setCallWaiting(enabled) {
+            this.callWaiting = Boolean(enabled);
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_call_waiting', this.callWaiting);
+            }
+            this.emit('callWaitingChanged', { callWaiting: this.callWaiting });
+        }
+
+        setDtmfMethod(method) {
+            const valid = ['AUTO', 'RFC2833', 'INFO'];
+            this.dtmfMethod = valid.includes(method) ? method : 'AUTO';
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_dtmf_method', this.dtmfMethod);
+            }
+            this.emit('dtmfMethodChanged', { dtmfMethod: this.dtmfMethod });
+        }
 
         async acquireMicrophone(deviceId = '') {
             this.initAudioContext();
             const constraints = {
                 audio: {
-                    echoCancellation: { ideal: true },
-                    noiseSuppression: { ideal: true },
-                    autoGainControl: { ideal: true },
+                    echoCancellation: { ideal: this.echoCancellation },
+                    noiseSuppression: { ideal: this.noiseSuppression },
+                    autoGainControl: { ideal: this.autoGainControl },
                     channelCount: { ideal: 1 },
                     sampleRate: { ideal: 48000 }
                 },
@@ -540,11 +664,22 @@
                 if (!this.activeRingtoneNodes) {
                     this.activeRingtoneNodes = new Set();
                 }
+                if (!this.ringDestination && this.ringAudioEl && this.audioCtx && typeof this.audioCtx.createMediaStreamDestination === 'function') {
+                    try {
+                        this.ringDestination = this.audioCtx.createMediaStreamDestination();
+                        this.ringAudioEl.srcObject = this.ringDestination.stream;
+                    } catch (_) {}
+                }
 
+                const ringScale = (this.ringVolume ?? 100) / 100;
                 this.masterRingtoneGain = this.audioCtx.createGain();
-                this.masterRingtoneGain.gain.setValueAtTime(0.22, this.audioCtx.currentTime);
-                this.masterRingtoneGain.connect(this.audioCtx.destination);
+                this.masterRingtoneGain.gain.setValueAtTime(0.22 * ringScale, this.audioCtx.currentTime);
 
+                if (this.ringDestination) {
+                    this.masterRingtoneGain.connect(this.ringDestination);
+                } else {
+                    this.masterRingtoneGain.connect(this.audioCtx.destination);
+                }
                 const playRingBurst = () => {
                     if (!this.audioCtx || !this.masterRingtoneGain) return;
                     try {
@@ -614,6 +749,87 @@
                 });
                 this.activeRingtoneNodes.clear();
             }
+        }
+        playTestRingChime() {
+            this.stopRingtone();
+            this.initAudioContext();
+            if (!this.audioCtx) return;
+
+            try {
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume().catch(() => {});
+                }
+                if (!this.ringDestination && this.ringAudioEl && typeof this.audioCtx.createMediaStreamDestination === 'function') {
+                    try {
+                        this.ringDestination = this.audioCtx.createMediaStreamDestination();
+                        this.ringAudioEl.srcObject = this.ringDestination.stream;
+                    } catch (_) {}
+                }
+
+                const ringScale = (this.ringVolume ?? 100) / 100;
+                const chimeGain = this.audioCtx.createGain();
+                chimeGain.gain.setValueAtTime(0.22 * ringScale, this.audioCtx.currentTime);
+
+                if (this.ringDestination) {
+                    chimeGain.connect(this.ringDestination);
+                } else {
+                    chimeGain.connect(this.audioCtx.destination);
+                }
+
+                const now = this.audioCtx.currentTime;
+                const osc1 = this.audioCtx.createOscillator();
+                const osc2 = this.audioCtx.createOscillator();
+                osc1.type = 'sine';
+                osc2.type = 'sine';
+                osc1.frequency.value = 440;
+                osc2.frequency.value = 480;
+
+                const burst = this.audioCtx.createGain();
+                burst.gain.setValueAtTime(0, now);
+                burst.gain.linearRampToValueAtTime(0.25, now + 0.04);
+                burst.gain.setValueAtTime(0.25, now + 0.5);
+                burst.gain.linearRampToValueAtTime(0, now + 0.6);
+
+                osc1.connect(burst);
+                osc2.connect(burst);
+                burst.connect(chimeGain);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.6);
+                osc2.stop(now + 0.6);
+            } catch (_) {}
+        }
+
+        playCallWaitingBeep() {
+            this.initAudioContext();
+            if (!this.audioCtx) return;
+            try {
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume().catch(() => {});
+                }
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 425;
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.02);
+                gain.gain.setValueAtTime(0.12, now + 0.18);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+
+                gain.gain.setValueAtTime(0, now + 0.28);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+                gain.gain.setValueAtTime(0.12, now + 0.46);
+                gain.gain.linearRampToValueAtTime(0, now + 0.48);
+
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } catch (_) {}
         }
 
         startRingback() {
@@ -895,7 +1111,7 @@
                     this.emit('callLog', { target: remoteUser, direction: 'incoming', status: 'rejected_dnd', durationSec: 0 });
                     return;
                 }
-                if (this.activeCalls.size > 0) {
+                if (this.activeCalls.size > 0 && (this.singleCallMode || !this.callWaiting)) {
                     session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
                     this.emit('callLog', { target: remoteUser, direction: 'incoming', status: 'busy', durationSec: 0 });
                     return;
@@ -921,9 +1137,12 @@
             this.attachSessionListeners(session, callEntry);
 
             if (isIncoming) {
-                this.startRingtone();
+                if (this.activeCalls.size > 1) {
+                    this.playCallWaitingBeep();
+                } else {
+                    this.startRingtone();
+                }
                 this.emit('incomingCall', callEntry);
-
                 if (this.isAutoAnswer && this.micPermissionGranted) {
                     setTimeout(() => {
                         this.answerCall(callId);
@@ -1245,9 +1464,7 @@
                     offerToReceiveVideo: false
                 },
                 pcConfig: {
-                    // LAN-only: empty iceServers — host candidates are sufficient.
-                    // For WAN/remote, restore: { urls: 'stun:stun.l.google.com:19302' }
-                    iceServers: [],
+                    iceServers: this.getStunIceServers(),
                     bundlePolicy: 'max-bundle',
                     rtcpMuxPolicy: 'require'
                 },
@@ -1277,8 +1494,7 @@
             const answerOpts = {
                 mediaConstraints: { audio: true, video: false },
                 pcConfig: {
-                    // LAN-only: empty iceServers — host candidates are sufficient.
-                    iceServers: [],
+                    iceServers: this.getStunIceServers(),
                     bundlePolicy: 'max-bundle',
                     rtcpMuxPolicy: 'require'
                 },
@@ -1369,19 +1585,34 @@
             const callEntry = this.activeCalls.get(callId);
             if (callEntry && callEntry.session && callEntry.status === 'active') {
                 try {
-                    callEntry.session.sendDTMF(digit);
+                    const dtmfOpts = {};
+                    if (this.dtmfMethod === 'INFO') {
+                        dtmfOpts.transportType = 'INFO';
+                    } else if (this.dtmfMethod === 'RFC2833') {
+                        dtmfOpts.transportType = 'RFC2833';
+                    }
+                    callEntry.session.sendDTMF(digit, dtmfOpts);
                 } catch (_) {}
             }
             this.playDtmfSidetone(digit);
         }
 
+        sendDTMF(callId, digit) {
+            return this.sendDtmf(callId, digit);
+        }
         sendDtmfSequence(callEntry, sequence) {
             if (!callEntry || !callEntry.session) return;
             const digits = String(sequence).split('');
             digits.forEach((d, idx) => {
                 setTimeout(() => {
                     try {
-                        callEntry.session.sendDTMF(d);
+                        const dtmfOpts = {};
+                        if (this.dtmfMethod === 'INFO') {
+                            dtmfOpts.transportType = 'INFO';
+                        } else if (this.dtmfMethod === 'RFC2833') {
+                            dtmfOpts.transportType = 'RFC2833';
+                        }
+                        callEntry.session.sendDTMF(d, dtmfOpts);
                         this.playDtmfSidetone(d);
                     } catch (_) {}
                 }, idx * 160);

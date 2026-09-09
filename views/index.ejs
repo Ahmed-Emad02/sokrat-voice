@@ -5007,6 +5007,7 @@ body.is-embedded .keypad-btn {
 
     <!-- Hidden Remote Audio Element for Bidirectional Audio -->
     <audio id="remoteAudio" autoplay playsinline></audio>
+    <audio id="ringAudio" autoplay playsinline></audio>
 
     <!-- Multi-Window Take-Over Overlay -->
     <div id="takeOverOverlay" class="modal-backdrop hidden">
@@ -5441,29 +5442,138 @@ body.is-embedded .keypad-btn {
         </div>
     </div>
 
-    <!-- MODAL: AUDIO HARDWARE DEVICES -->
+    <!-- MODAL: SETTINGS & AUDIO HARDWARE -->
     <div id="audioModal" class="modal-backdrop hidden">
-        <div class="modal-card">
-            <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 12px; color: var(--accent-color);">
-                <%= isRtl ? 'إعدادات أجهزة الصوت' : 'Audio & Device Settings' %>
-            </h3>
-            <div class="flex flex-col gap-2 mb-3">
-                <div>
-                    <label class="text-xs font-bold text-secondary"><%= isRtl ? 'ميكروفون الإدخال:' : 'Microphone Input:' %></label>
-                    <select id="audioInputSelect" class="input-text mt-1"></select>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-secondary"><%= isRtl ? 'سماعة الإخراج:' : 'Speaker Output:' %></label>
-                    <select id="audioOutputSelect" class="input-text mt-1"></select>
+        <div class="modal-card" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <h3 style="font-size: 15px; font-weight: 800; color: var(--accent-color); margin: 0;">
+                    <%= isRtl ? 'إعدادات الهاتف وأجهزة الصوت' : 'Settings & Devices' %>
+                </h3>
+                <button type="button" onclick="document.getElementById('audioModal').classList.add('hidden')" style="background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 2px;">✕</button>
+            </div>
+
+            <!-- Modal Sub-Tabs (Audio Devices, Audio Processing, Calls & Network) -->
+            <div class="modal-tabs">
+                <button type="button" id="settingsTabBtnAudio" class="modal-tab-btn active" onclick="window.softphoneUi.switchSettingsTab('audio')">
+                    <%= isRtl ? 'أجهزة الصوت' : 'Audio Devices' %>
+                </button>
+                <button type="button" id="settingsTabBtnDsp" class="modal-tab-btn" onclick="window.softphoneUi.switchSettingsTab('dsp')">
+                    <%= isRtl ? 'معالجة الصوت (DSP)' : 'Audio Processing' %>
+                </button>
+                <button type="button" id="settingsTabBtnCalls" class="modal-tab-btn" onclick="window.softphoneUi.switchSettingsTab('calls')">
+                    <%= isRtl ? 'الاتصال والشبكة' : 'Calls & Network' %>
+                </button>
+            </div>
+
+            <!-- Tab 1: Audio Devices -->
+            <div id="settingsTabContentAudio" style="display: block;">
+                <div class="flex flex-col gap-2 mb-3">
+                    <div>
+                        <label class="text-xs font-bold text-secondary"><%= isRtl ? 'ميكروفون الإدخال:' : 'Microphone Input:' %></label>
+                        <select id="audioInputSelect" class="input-text mt-1"></select>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <label class="text-xs font-bold text-secondary"><%= isRtl ? 'سماعة المكالمة (الإخراج):' : 'Call Speaker (Output):' %></label>
+                            <button type="button" onclick="window.softphoneUi.testSpeakerOutput()" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">
+                                <span><%= isRtl ? 'اختبار السماعة' : 'Test Speaker' %></span>
+                            </button>
+                        </div>
+                        <select id="audioOutputSelect" class="input-text mt-1"></select>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <label class="text-xs font-bold text-secondary"><%= isRtl ? 'جهاز الرنين (مستقل):' : 'Ringtone Device (Separate):' %></label>
+                            <button type="button" onclick="window.softphoneUi.testRingOutput()" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">
+                                <span><%= isRtl ? 'اختبار الرنين 🔔' : 'Test Ring 🔔' %></span>
+                            </button>
+                        </div>
+                        <select id="audioRingSelect" class="input-text mt-1"></select>
+                    </div>
+                    <div style="margin-top: 4px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                            <label class="text-xs font-bold text-secondary"><%= isRtl ? 'مستوى صوت الرنين:' : 'Ringtone Volume:' %></label>
+                            <span id="ringVolumeVal" class="text-xs font-mono font-bold" style="color: var(--accent-color);">100%</span>
+                        </div>
+                        <input type="range" id="ringVolumeSlider" min="0" max="100" value="100" class="vol-slider" style="width: 100%;">
+                    </div>
                 </div>
             </div>
-            <div class="flex items-center justify-between">
-                <button type="button" onclick="window.softphoneUi.testSpeakerOutput()" class="btn btn-secondary text-xs">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:3px;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                    <span><%= isRtl ? 'اختبار الصوت' : 'Test Audio' %></span>
-                </button>
-                <button type="button" onclick="document.getElementById('audioModal').classList.add('hidden')" class="btn btn-primary text-xs">
-                    <%= isRtl ? 'تم' : 'Done' %>
+
+            <!-- Tab 2: Audio Processing (WebRTC DSP) -->
+            <div id="settingsTabContentDsp" style="display: none;">
+                <div class="flex flex-col gap-3 mb-3">
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <input type="checkbox" id="ecCheckbox" checked style="margin-top: 2px;">
+                        <div>
+                            <div class="text-xs font-bold" style="color: var(--text-primary);"><%= isRtl ? 'إلغاء الصدى الصوتي (Echo Cancellation)' : 'Echo Cancellation (EC)' %></div>
+                            <div class="text-xs text-muted" style="font-size: 10.5px;"><%= isRtl ? 'يمنع ارتداد صوت الطرف الآخر من السماعة إلى الميكروفون' : 'Reduces acoustic feedback from speaker to microphone' %></div>
+                        </div>
+                    </label>
+
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <input type="checkbox" id="nsCheckbox" checked style="margin-top: 2px;">
+                        <div>
+                            <div class="text-xs font-bold" style="color: var(--text-primary);"><%= isRtl ? 'تقليل الضوضاء المحيطة (Noise Suppression)' : 'Noise Suppression (NS)' %></div>
+                            <div class="text-xs text-muted" style="font-size: 10.5px;"><%= isRtl ? 'فلترة أصوات الخلفية والضجيج أثناء التحدث' : 'Filters background ambient noise and keyboard clicks' %></div>
+                        </div>
+                    </label>
+
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <input type="checkbox" id="agcCheckbox" checked style="margin-top: 2px;">
+                        <div>
+                            <div class="text-xs font-bold" style="color: var(--text-primary);"><%= isRtl ? 'التحكم التلقائي في الكسب (Auto Gain Control)' : 'Automatic Gain Control (AGC / Amplification)' %></div>
+                            <div class="text-xs text-muted" style="font-size: 10.5px;"><%= isRtl ? 'تضخيم وضبط مستوى حساسية الميكروفون تلقائياً' : 'Automatic microphone amplification and software level leveling' %></div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tab 3: Calls & Network -->
+            <div id="settingsTabContentCalls" style="display: none;">
+                <div class="flex flex-col gap-3 mb-3">
+                    <div style="padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="stunCheckbox">
+                            <span class="text-xs font-bold" style="color: var(--text-primary);"><%= isRtl ? 'تفعيل خادم STUN (للاتصال الخارجي WAN)' : 'Enable STUN Server (WAN / Remote NAT)' %></span>
+                        </label>
+                        <input type="text" id="stunServerInput" class="input-text font-mono text-xs" placeholder="stun:stun.l.google.com:19302" style="width: 100%;">
+                    </div>
+
+                    <div style="padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="singleCallCheckbox" style="margin-top: 2px;">
+                            <div>
+                                <div class="text-xs font-bold" style="color: var(--text-primary);"><%= isRtl ? 'وضع المكالمة الواحدة (Single Call Mode)' : 'Single Call Mode' %></div>
+                                <div class="text-xs text-muted" style="font-size: 10.5px;"><%= isRtl ? 'رفض أي مكالمة واردة ثانية فوراً برسالة مشغول 486 Busy Here' : 'Automatically reject secondary incoming calls with 486 Busy Here' %></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div style="padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="callWaitingCheckbox" checked style="margin-top: 2px;">
+                            <div>
+                                <div class="text-xs font-bold" style="color: var(--text-primary);"><%= isRtl ? 'انتظار المكالمات (Call Waiting)' : 'Call Waiting' %></div>
+                                <div class="text-xs text-muted" style="font-size: 10.5px;"><%= isRtl ? 'تشغيل نغمة تنبيه عند ورود مكالمة ثانية أثناء التحدث' : 'Play alert tone when a secondary incoming call arrives during a call' %></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div style="padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+                        <label class="text-xs font-bold text-secondary" style="display: block; margin-bottom: 4px;"><%= isRtl ? 'طريقة إرسال نغمات DTMF:' : 'DTMF Delivery Method:' %></label>
+                        <select id="dtmfMethodSelect" class="input-text text-xs" style="width: 100%;">
+                            <option value="AUTO"><%= isRtl ? 'تلقائي (Auto RFC 2833 / RTP)' : 'Auto (RFC 2833 / RTP telephone-event)' %></option>
+                            <option value="RFC2833">RFC 2833 (RTP telephone-event)</option>
+                            <option value="INFO">SIP INFO</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end" style="border-top: 1px solid var(--border-primary); padding-top: 10px; margin-top: 6px;">
+                <button type="button" onclick="document.getElementById('audioModal').classList.add('hidden')" class="btn btn-primary text-xs" style="padding: 6px 16px;">
+                    <%= isRtl ? 'حفظ وإغلاق' : 'Done' %>
                 </button>
             </div>
         </div>
@@ -5530,6 +5640,24 @@ body.is-embedded .keypad-btn {
             this.vuAnalyser = null;
             this.vuTimer = null;
             this.remoteAudioEl = null;
+            this.ringAudioEl = null;
+            this.ringDestination = null;
+            this.selectedRingOutputId = (typeof localStorage !== 'undefined' ? localStorage.getItem('sokrat_ring_device_id') : '') || '';
+            this.ringVolume = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_ring_volume') !== null) ? Number(localStorage.getItem('sokrat_ring_volume')) : 100;
+
+            // Audio Processing (WebRTC constraints)
+            this.echoCancellation = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_echo_cancellation') !== null) ? localStorage.getItem('sokrat_echo_cancellation') === 'true' : true;
+            this.noiseSuppression = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_noise_suppression') !== null) ? localStorage.getItem('sokrat_noise_suppression') === 'true' : true;
+            this.autoGainControl = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_auto_gain_control') !== null) ? localStorage.getItem('sokrat_auto_gain_control') === 'true' : true;
+
+            // Network & STUN
+            this.stunEnabled = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_stun_enabled') !== null) ? localStorage.getItem('sokrat_stun_enabled') === 'true' : false;
+            this.stunServer = (typeof localStorage !== 'undefined' ? localStorage.getItem('sokrat_stun_server') : '') || 'stun:stun.l.google.com:19302';
+
+            // Call Behavior
+            this.singleCallMode = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_single_call_mode') !== null) ? localStorage.getItem('sokrat_single_call_mode') === 'true' : false;
+            this.callWaiting = (typeof localStorage !== 'undefined' && localStorage.getItem('sokrat_call_waiting') !== null) ? localStorage.getItem('sokrat_call_waiting') === 'true' : true;
+            this.dtmfMethod = (typeof localStorage !== 'undefined' ? localStorage.getItem('sokrat_dtmf_method') : '') || 'AUTO';
 
             // Ringtones & Sidetones
             this.ringtoneGain = null;
@@ -5537,7 +5665,6 @@ body.is-embedded .keypad-btn {
             this.ringtoneTimer = null;
             this.ringbackOsc = null;
             this.ringbackTimer = null;
-
             // Reconnection & Quality
             this.reconnectTimer = null;
             this.reconnectAttempt = 0;
@@ -5729,14 +5856,121 @@ body.is-embedded .keypad-btn {
                 this.remoteAudioEl.setSinkId(this.selectedAudioOutputId).catch(() => {});
             }
         }
+        setRingAudioElement(el) {
+            this.ringAudioEl = el;
+            if (this.ringAudioEl) {
+                this.ringAudioEl.autoplay = true;
+                this.ringAudioEl.playsInline = true;
+            }
+            if (this.selectedRingOutputId && this.ringAudioEl && typeof this.ringAudioEl.setSinkId === 'function') {
+                this.ringAudioEl.setSinkId(this.selectedRingOutputId).catch(() => {});
+            }
+        }
+
+        async setRingDevice(deviceId) {
+            this.selectedRingOutputId = deviceId;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_ring_device_id', deviceId);
+            }
+            if (this.ringAudioEl && typeof this.ringAudioEl.setSinkId === 'function') {
+                try {
+                    await this.ringAudioEl.setSinkId(deviceId);
+                    this.emit('ringDeviceChanged', { deviceId });
+                } catch (err) {
+                    this.emit('ringDeviceError', { error: err.message });
+                }
+            }
+        }
+
+        setRingVolume(val) {
+            const clamped = Math.max(0, Math.min(100, Number(val) ?? 100));
+            this.ringVolume = clamped;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_ring_volume', clamped);
+            }
+            if (this.masterRingtoneGain && this.audioCtx) {
+                try {
+                    this.masterRingtoneGain.gain.setValueAtTime(0.22 * (clamped / 100), this.audioCtx.currentTime);
+                } catch (_) {}
+            }
+            this.emit('ringVolumeChanged', { volume: clamped });
+        }
+
+        setAudioProcessing({ echoCancellation, noiseSuppression, autoGainControl }) {
+            if (typeof echoCancellation === 'boolean') {
+                this.echoCancellation = echoCancellation;
+                if (typeof localStorage !== 'undefined') localStorage.setItem('sokrat_echo_cancellation', echoCancellation);
+            }
+            if (typeof noiseSuppression === 'boolean') {
+                this.noiseSuppression = noiseSuppression;
+                if (typeof localStorage !== 'undefined') localStorage.setItem('sokrat_noise_suppression', noiseSuppression);
+            }
+            if (typeof autoGainControl === 'boolean') {
+                this.autoGainControl = autoGainControl;
+                if (typeof localStorage !== 'undefined') localStorage.setItem('sokrat_auto_gain_control', autoGainControl);
+            }
+            if (this.micPermissionGranted) {
+                this.acquireMicrophone(this.selectedAudioInputId).catch(() => {});
+            }
+            this.emit('audioProcessingChanged', {
+                echoCancellation: this.echoCancellation,
+                noiseSuppression: this.noiseSuppression,
+                autoGainControl: this.autoGainControl
+            });
+        }
+
+        getStunIceServers() {
+            if (this.stunEnabled && this.stunServer) {
+                const urls = this.stunServer.trim().split(',').map(s => s.trim()).filter(Boolean);
+                if (urls.length > 0) {
+                    return [{ urls }];
+                }
+            }
+            return [];
+        }
+
+        setStunConfig(enabled, server) {
+            this.stunEnabled = Boolean(enabled);
+            if (typeof server === 'string') this.stunServer = server.trim();
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_stun_enabled', this.stunEnabled);
+                localStorage.setItem('sokrat_stun_server', this.stunServer);
+            }
+            this.emit('stunConfigChanged', { enabled: this.stunEnabled, server: this.stunServer });
+        }
+
+        setSingleCallMode(enabled) {
+            this.singleCallMode = Boolean(enabled);
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_single_call_mode', this.singleCallMode);
+            }
+            this.emit('singleCallModeChanged', { singleCallMode: this.singleCallMode });
+        }
+
+        setCallWaiting(enabled) {
+            this.callWaiting = Boolean(enabled);
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_call_waiting', this.callWaiting);
+            }
+            this.emit('callWaitingChanged', { callWaiting: this.callWaiting });
+        }
+
+        setDtmfMethod(method) {
+            const valid = ['AUTO', 'RFC2833', 'INFO'];
+            this.dtmfMethod = valid.includes(method) ? method : 'AUTO';
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('sokrat_dtmf_method', this.dtmfMethod);
+            }
+            this.emit('dtmfMethodChanged', { dtmfMethod: this.dtmfMethod });
+        }
 
         async acquireMicrophone(deviceId = '') {
             this.initAudioContext();
             const constraints = {
                 audio: {
-                    echoCancellation: { ideal: true },
-                    noiseSuppression: { ideal: true },
-                    autoGainControl: { ideal: true },
+                    echoCancellation: { ideal: this.echoCancellation },
+                    noiseSuppression: { ideal: this.noiseSuppression },
+                    autoGainControl: { ideal: this.autoGainControl },
                     channelCount: { ideal: 1 },
                     sampleRate: { ideal: 48000 }
                 },
@@ -6026,11 +6260,22 @@ body.is-embedded .keypad-btn {
                 if (!this.activeRingtoneNodes) {
                     this.activeRingtoneNodes = new Set();
                 }
+                if (!this.ringDestination && this.ringAudioEl && this.audioCtx && typeof this.audioCtx.createMediaStreamDestination === 'function') {
+                    try {
+                        this.ringDestination = this.audioCtx.createMediaStreamDestination();
+                        this.ringAudioEl.srcObject = this.ringDestination.stream;
+                    } catch (_) {}
+                }
 
+                const ringScale = (this.ringVolume ?? 100) / 100;
                 this.masterRingtoneGain = this.audioCtx.createGain();
-                this.masterRingtoneGain.gain.setValueAtTime(0.22, this.audioCtx.currentTime);
-                this.masterRingtoneGain.connect(this.audioCtx.destination);
+                this.masterRingtoneGain.gain.setValueAtTime(0.22 * ringScale, this.audioCtx.currentTime);
 
+                if (this.ringDestination) {
+                    this.masterRingtoneGain.connect(this.ringDestination);
+                } else {
+                    this.masterRingtoneGain.connect(this.audioCtx.destination);
+                }
                 const playRingBurst = () => {
                     if (!this.audioCtx || !this.masterRingtoneGain) return;
                     try {
@@ -6100,6 +6345,87 @@ body.is-embedded .keypad-btn {
                 });
                 this.activeRingtoneNodes.clear();
             }
+        }
+        playTestRingChime() {
+            this.stopRingtone();
+            this.initAudioContext();
+            if (!this.audioCtx) return;
+
+            try {
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume().catch(() => {});
+                }
+                if (!this.ringDestination && this.ringAudioEl && typeof this.audioCtx.createMediaStreamDestination === 'function') {
+                    try {
+                        this.ringDestination = this.audioCtx.createMediaStreamDestination();
+                        this.ringAudioEl.srcObject = this.ringDestination.stream;
+                    } catch (_) {}
+                }
+
+                const ringScale = (this.ringVolume ?? 100) / 100;
+                const chimeGain = this.audioCtx.createGain();
+                chimeGain.gain.setValueAtTime(0.22 * ringScale, this.audioCtx.currentTime);
+
+                if (this.ringDestination) {
+                    chimeGain.connect(this.ringDestination);
+                } else {
+                    chimeGain.connect(this.audioCtx.destination);
+                }
+
+                const now = this.audioCtx.currentTime;
+                const osc1 = this.audioCtx.createOscillator();
+                const osc2 = this.audioCtx.createOscillator();
+                osc1.type = 'sine';
+                osc2.type = 'sine';
+                osc1.frequency.value = 440;
+                osc2.frequency.value = 480;
+
+                const burst = this.audioCtx.createGain();
+                burst.gain.setValueAtTime(0, now);
+                burst.gain.linearRampToValueAtTime(0.25, now + 0.04);
+                burst.gain.setValueAtTime(0.25, now + 0.5);
+                burst.gain.linearRampToValueAtTime(0, now + 0.6);
+
+                osc1.connect(burst);
+                osc2.connect(burst);
+                burst.connect(chimeGain);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.6);
+                osc2.stop(now + 0.6);
+            } catch (_) {}
+        }
+
+        playCallWaitingBeep() {
+            this.initAudioContext();
+            if (!this.audioCtx) return;
+            try {
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume().catch(() => {});
+                }
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 425;
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.02);
+                gain.gain.setValueAtTime(0.12, now + 0.18);
+                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+
+                gain.gain.setValueAtTime(0, now + 0.28);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+                gain.gain.setValueAtTime(0.12, now + 0.46);
+                gain.gain.linearRampToValueAtTime(0, now + 0.48);
+
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } catch (_) {}
         }
 
         startRingback() {
@@ -6381,7 +6707,7 @@ body.is-embedded .keypad-btn {
                     this.emit('callLog', { target: remoteUser, direction: 'incoming', status: 'rejected_dnd', durationSec: 0 });
                     return;
                 }
-                if (this.activeCalls.size > 0) {
+                if (this.activeCalls.size > 0 && (this.singleCallMode || !this.callWaiting)) {
                     session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
                     this.emit('callLog', { target: remoteUser, direction: 'incoming', status: 'busy', durationSec: 0 });
                     return;
@@ -6407,9 +6733,12 @@ body.is-embedded .keypad-btn {
             this.attachSessionListeners(session, callEntry);
 
             if (isIncoming) {
-                this.startRingtone();
+                if (this.activeCalls.size > 1) {
+                    this.playCallWaitingBeep();
+                } else {
+                    this.startRingtone();
+                }
                 this.emit('incomingCall', callEntry);
-
                 if (this.isAutoAnswer && this.micPermissionGranted) {
                     setTimeout(() => {
                         this.answerCall(callId);
@@ -6731,9 +7060,7 @@ body.is-embedded .keypad-btn {
                     offerToReceiveVideo: false
                 },
                 pcConfig: {
-                    // LAN-only: empty iceServers — host candidates are sufficient.
-                    // For WAN/remote, restore: { urls: 'stun:stun.l.google.com:19302' }
-                    iceServers: [],
+                    iceServers: this.getStunIceServers(),
                     bundlePolicy: 'max-bundle',
                     rtcpMuxPolicy: 'require'
                 },
@@ -6763,8 +7090,7 @@ body.is-embedded .keypad-btn {
             const answerOpts = {
                 mediaConstraints: { audio: true, video: false },
                 pcConfig: {
-                    // LAN-only: empty iceServers — host candidates are sufficient.
-                    iceServers: [],
+                    iceServers: this.getStunIceServers(),
                     bundlePolicy: 'max-bundle',
                     rtcpMuxPolicy: 'require'
                 },
@@ -6855,19 +7181,34 @@ body.is-embedded .keypad-btn {
             const callEntry = this.activeCalls.get(callId);
             if (callEntry && callEntry.session && callEntry.status === 'active') {
                 try {
-                    callEntry.session.sendDTMF(digit);
+                    const dtmfOpts = {};
+                    if (this.dtmfMethod === 'INFO') {
+                        dtmfOpts.transportType = 'INFO';
+                    } else if (this.dtmfMethod === 'RFC2833') {
+                        dtmfOpts.transportType = 'RFC2833';
+                    }
+                    callEntry.session.sendDTMF(digit, dtmfOpts);
                 } catch (_) {}
             }
             this.playDtmfSidetone(digit);
         }
 
+        sendDTMF(callId, digit) {
+            return this.sendDtmf(callId, digit);
+        }
         sendDtmfSequence(callEntry, sequence) {
             if (!callEntry || !callEntry.session) return;
             const digits = String(sequence).split('');
             digits.forEach((d, idx) => {
                 setTimeout(() => {
                     try {
-                        callEntry.session.sendDTMF(d);
+                        const dtmfOpts = {};
+                        if (this.dtmfMethod === 'INFO') {
+                            dtmfOpts.transportType = 'INFO';
+                        } else if (this.dtmfMethod === 'RFC2833') {
+                            dtmfOpts.transportType = 'RFC2833';
+                        }
+                        callEntry.session.sendDTMF(d, dtmfOpts);
                         this.playDtmfSidetone(d);
                     } catch (_) {}
                 }, idx * 160);
@@ -7433,8 +7774,23 @@ body.is-embedded .keypad-btn {
             this.dom.takeOverOverlay = document.getElementById('takeOverOverlay');
             this.dom.toastContainer = document.getElementById('toastContainer');
             this.dom.remoteAudio = document.getElementById('remoteAudio');
+            this.dom.ringAudio = document.getElementById('ringAudio');
+            if (this.dom.ringAudio) {
+                this.core.setRingAudioElement(this.dom.ringAudio);
+            }
             this.dom.audioInputSelect = document.getElementById('audioInputSelect');
             this.dom.audioOutputSelect = document.getElementById('audioOutputSelect');
+            this.dom.audioRingSelect = document.getElementById('audioRingSelect');
+            this.dom.ringVolumeSlider = document.getElementById('ringVolumeSlider');
+            this.dom.ringVolumeVal = document.getElementById('ringVolumeVal');
+            this.dom.ecCheckbox = document.getElementById('ecCheckbox');
+            this.dom.nsCheckbox = document.getElementById('nsCheckbox');
+            this.dom.agcCheckbox = document.getElementById('agcCheckbox');
+            this.dom.stunCheckbox = document.getElementById('stunCheckbox');
+            this.dom.stunServerInput = document.getElementById('stunServerInput');
+            this.dom.singleCallCheckbox = document.getElementById('singleCallCheckbox');
+            this.dom.callWaitingCheckbox = document.getElementById('callWaitingCheckbox');
+            this.dom.dtmfMethodSelect = document.getElementById('dtmfMethodSelect');
             this.dom.dndCheckbox = document.getElementById('dndCheckbox');
             this.dom.autoAnswerCheckbox = document.getElementById('autoAnswerCheckbox');
             this.dom.presetModal = document.getElementById('presetModal');
@@ -9820,8 +10176,7 @@ body.is-embedded .keypad-btn {
                             e.stopPropagation();
                             try {
                                 if (call.session) {
-                                    call.session.sendDTMF(k);
-                                    this.core.playDtmfSidetone(k);
+                                    this.core.sendDTMF(call.id, k);
                                     const display = document.getElementById(`dtmfDisplay_${call.id}`);
                                     if (display) {
                                         display.textContent += k;
@@ -10282,9 +10637,39 @@ body.is-embedded .keypad-btn {
         }
 
         // --- HARDWARE AUDIO DEVICES ---
+        // --- HARDWARE AUDIO & SETTINGS MODAL ---
+        switchSettingsTab(tabName) {
+            const tabs = ['Audio', 'Dsp', 'Calls'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`settingsTabBtn${t}`);
+                const content = document.getElementById(`settingsTabContent${t}`);
+                if (btn) btn.classList.toggle('active', t.toLowerCase() === tabName.toLowerCase());
+                if (content) content.style.display = (t.toLowerCase() === tabName.toLowerCase()) ? 'block' : 'none';
+            });
+        }
+
         async openAudioModal() {
             document.getElementById('audioModal').classList.remove('hidden');
+            this.switchSettingsTab('audio');
             await this.enumerateAudioDevices();
+            this.syncSettingsToUi();
+        }
+
+        syncSettingsToUi() {
+            if (this.dom.ringVolumeSlider) {
+                this.dom.ringVolumeSlider.value = this.core.ringVolume ?? 100;
+            }
+            if (this.dom.ringVolumeVal) {
+                this.dom.ringVolumeVal.textContent = `${this.core.ringVolume ?? 100}%`;
+            }
+            if (this.dom.ecCheckbox) this.dom.ecCheckbox.checked = Boolean(this.core.echoCancellation);
+            if (this.dom.nsCheckbox) this.dom.nsCheckbox.checked = Boolean(this.core.noiseSuppression);
+            if (this.dom.agcCheckbox) this.dom.agcCheckbox.checked = Boolean(this.core.autoGainControl);
+            if (this.dom.stunCheckbox) this.dom.stunCheckbox.checked = Boolean(this.core.stunEnabled);
+            if (this.dom.stunServerInput) this.dom.stunServerInput.value = this.core.stunServer || '';
+            if (this.dom.singleCallCheckbox) this.dom.singleCallCheckbox.checked = Boolean(this.core.singleCallMode);
+            if (this.dom.callWaitingCheckbox) this.dom.callWaitingCheckbox.checked = Boolean(this.core.callWaiting);
+            if (this.dom.dtmfMethodSelect) this.dom.dtmfMethodSelect.value = this.core.dtmfMethod || 'AUTO';
         }
 
         async enumerateAudioDevices() {
@@ -10299,40 +10684,62 @@ body.is-embedded .keypad-btn {
                     } catch (_) {}
                 }
 
-                this.dom.audioInputSelect.textContent = '';
-                this.dom.audioOutputSelect.textContent = '';
+                if (this.dom.audioInputSelect) this.dom.audioInputSelect.textContent = '';
+                if (this.dom.audioOutputSelect) this.dom.audioOutputSelect.textContent = '';
+                if (this.dom.audioRingSelect) this.dom.audioRingSelect.textContent = '';
 
                 const audioInputs = devices.filter(d => d.kind === 'audioinput');
                 const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
 
-                if (audioInputs.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'Default Microphone (System)';
-                    this.dom.audioInputSelect.appendChild(opt);
-                } else {
-                    audioInputs.forEach((dev, idx) => {
+                if (this.dom.audioInputSelect) {
+                    if (audioInputs.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = dev.deviceId;
-                        opt.textContent = dev.label || `Microphone ${idx + 1}`;
-                        if (this.core.selectedAudioInputId === dev.deviceId) opt.selected = true;
+                        opt.value = '';
+                        opt.textContent = 'Default Microphone (System)';
                         this.dom.audioInputSelect.appendChild(opt);
-                    });
+                    } else {
+                        audioInputs.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.deviceId;
+                            opt.textContent = dev.label || `Microphone ${idx + 1}`;
+                            if (this.core.selectedAudioInputId === dev.deviceId) opt.selected = true;
+                            this.dom.audioInputSelect.appendChild(opt);
+                        });
+                    }
                 }
 
-                if (audioOutputs.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'Default Speaker (System)';
-                    this.dom.audioOutputSelect.appendChild(opt);
-                } else {
-                    audioOutputs.forEach((dev, idx) => {
+                if (this.dom.audioOutputSelect) {
+                    if (audioOutputs.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = dev.deviceId;
-                        opt.textContent = dev.label || `Speaker ${idx + 1}`;
-                        if (this.core.selectedAudioOutputId === dev.deviceId) opt.selected = true;
+                        opt.value = '';
+                        opt.textContent = 'Default Speaker (System)';
                         this.dom.audioOutputSelect.appendChild(opt);
-                    });
+                    } else {
+                        audioOutputs.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.deviceId;
+                            opt.textContent = dev.label || `Speaker ${idx + 1}`;
+                            if (this.core.selectedAudioOutputId === dev.deviceId) opt.selected = true;
+                            this.dom.audioOutputSelect.appendChild(opt);
+                        });
+                    }
+                }
+
+                if (this.dom.audioRingSelect) {
+                    if (audioOutputs.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'Default Ring Device (System)';
+                        this.dom.audioRingSelect.appendChild(opt);
+                    } else {
+                        audioOutputs.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.deviceId;
+                            opt.textContent = dev.label || `Ring Device ${idx + 1}`;
+                            if (this.core.selectedRingOutputId === dev.deviceId) opt.selected = true;
+                            this.dom.audioRingSelect.appendChild(opt);
+                        });
+                    }
                 }
             } catch (err) {
                 console.warn('Device enumeration warning:', err);
@@ -10344,6 +10751,10 @@ body.is-embedded .keypad-btn {
             this.showToast(this.currentLang === 'ar' ? 'جاري تشغيل نغمة اختبار الصوت 🔔' : 'Playing audio test chime 🔔', 'info');
         }
 
+        testRingOutput() {
+            this.core.playTestRingChime();
+            this.showToast(this.currentLang === 'ar' ? 'تشغيل نغمة اختبار الرنين 🔔' : 'Playing ring test chime 🔔', 'info');
+        }
         async checkMicrophonePermissionInitial() {
             try {
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -10506,6 +10917,63 @@ body.is-embedded .keypad-btn {
                 await this.core.setOutputDevice(deviceId);
                 this.showToast('Speaker updated', 'info');
             });
+            if (this.dom.audioRingSelect) {
+                this.dom.audioRingSelect.addEventListener('change', async () => {
+                    const deviceId = this.dom.audioRingSelect.value;
+                    await this.core.setRingDevice(deviceId);
+                    this.showToast('Ring device updated', 'info');
+                });
+            }
+
+            if (this.dom.ringVolumeSlider) {
+                this.dom.ringVolumeSlider.addEventListener('input', () => {
+                    const val = Number(this.dom.ringVolumeSlider.value);
+                    this.core.setRingVolume(val);
+                    if (this.dom.ringVolumeVal) this.dom.ringVolumeVal.textContent = `${val}%`;
+                });
+            }
+
+            const updateDsp = () => {
+                this.core.setAudioProcessing({
+                    echoCancellation: this.dom.ecCheckbox ? this.dom.ecCheckbox.checked : true,
+                    noiseSuppression: this.dom.nsCheckbox ? this.dom.nsCheckbox.checked : true,
+                    autoGainControl: this.dom.agcCheckbox ? this.dom.agcCheckbox.checked : true
+                });
+                this.showToast('Audio processing updated', 'info');
+            };
+            if (this.dom.ecCheckbox) this.dom.ecCheckbox.addEventListener('change', updateDsp);
+            if (this.dom.nsCheckbox) this.dom.nsCheckbox.addEventListener('change', updateDsp);
+            if (this.dom.agcCheckbox) this.dom.agcCheckbox.addEventListener('change', updateDsp);
+
+            const updateStun = () => {
+                const enabled = this.dom.stunCheckbox ? this.dom.stunCheckbox.checked : false;
+                const server = this.dom.stunServerInput ? this.dom.stunServerInput.value : '';
+                this.core.setStunConfig(enabled, server);
+                this.showToast('STUN/ICE configuration updated', 'info');
+            };
+            if (this.dom.stunCheckbox) this.dom.stunCheckbox.addEventListener('change', updateStun);
+            if (this.dom.stunServerInput) this.dom.stunServerInput.addEventListener('change', updateStun);
+
+            if (this.dom.singleCallCheckbox) {
+                this.dom.singleCallCheckbox.addEventListener('change', () => {
+                    this.core.setSingleCallMode(this.dom.singleCallCheckbox.checked);
+                    this.showToast(this.core.singleCallMode ? 'Single Call Mode enabled' : 'Single Call Mode disabled', 'info');
+                });
+            }
+
+            if (this.dom.callWaitingCheckbox) {
+                this.dom.callWaitingCheckbox.addEventListener('change', () => {
+                    this.core.setCallWaiting(this.dom.callWaitingCheckbox.checked);
+                    this.showToast(this.core.callWaiting ? 'Call Waiting enabled' : 'Call Waiting disabled', 'info');
+                });
+            }
+
+            if (this.dom.dtmfMethodSelect) {
+                this.dom.dtmfMethodSelect.addEventListener('change', () => {
+                    this.core.setDtmfMethod(this.dom.dtmfMethodSelect.value);
+                    this.showToast(`DTMF method set to ${this.core.dtmfMethod}`, 'info');
+                });
+            }
 
             // Global Keyboard Shortcuts
             window.addEventListener('keydown', (e) => {
