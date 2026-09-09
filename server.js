@@ -53,7 +53,8 @@ function resolveTelephonyEndpoint(headers = {}, fallbackHost = '127.0.0.1') {
 
     const requestHost = String(headers.host || '').trim();
     const host = requestHost.split(':')[0] || fallbackHost;
-    const portStr = requestHost.endsWith(':8443') ? ':8443' : '';
+    const isPort8443 = requestHost.endsWith(':8443') || String(headers['x-forwarded-port'] || '') === '8443';
+    const portStr = isPort8443 ? ':8443' : '';
     return {
         host,
         defaultWss: `wss://${host}${portStr}/ws`

@@ -6547,7 +6547,19 @@ body.is-embedded .keypad-btn {
                 const host = window.location.hostname || '127.0.0.1';
                 const portStr = (window.location.port === '8443') ? ':8443' : (window.location.port ? ':' + window.location.port : '');
                 const defaultWss = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + host + portStr + '/ws';
-                const wssUrl = preset.wssUrl || defaultWss;
+                let wssUrl = defaultWss;
+                if (preset.wssUrl) {
+                    try {
+                        const parsed = new URL(preset.wssUrl);
+                        if (parsed.hostname === host || parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost' || parsed.port === '8089') {
+                            wssUrl = defaultWss;
+                        } else {
+                            wssUrl = preset.wssUrl;
+                        }
+                    } catch (_) {
+                        wssUrl = defaultWss;
+                    }
+                }
                 const sipDomain = preset.sipDomain || host;
 
                 const socket = new JsSIP.WebSocketInterface(wssUrl);
