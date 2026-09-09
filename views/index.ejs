@@ -10051,7 +10051,7 @@ body.is-embedded .keypad-btn {
                 const contactMatch = this.findContactByNumber(call.target) || this.findContactByNumber(call.displayName);
                 const avatar = document.createElement('div');
                 avatar.className = 'hero-avatar';
-                const avatarChar = contactMatch && contactMatch.name ? contactMatch.name.trim().charAt(0) : (call.target || 'A').charAt(0);
+                const avatarChar = contactMatch && contactMatch.name ? contactMatch.name.trim().charAt(0) : (call.displayName || call.target || 'A').trim().charAt(0);
                 avatar.textContent = avatarChar.toUpperCase();
 
                 const nameCol = document.createElement('div');
@@ -10064,6 +10064,13 @@ body.is-embedded .keypad-btn {
                     const numDiv = document.createElement('div');
                     numDiv.className = 'text-xs text-muted font-mono';
                     numDiv.textContent = call.target || call.displayName;
+                    nameCol.appendChild(nameDiv);
+                    nameCol.appendChild(numDiv);
+                } else if (call.displayName && call.displayName !== call.target) {
+                    nameDiv.textContent = call.displayName;
+                    const numDiv = document.createElement('div');
+                    numDiv.className = 'text-xs text-muted font-mono';
+                    numDiv.textContent = call.target;
                     nameCol.appendChild(nameDiv);
                     nameCol.appendChild(numDiv);
                 } else {
