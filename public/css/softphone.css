@@ -2701,31 +2701,6 @@ html.light-theme .vol-pct-badge {
     padding-right: 2px;
 }
 
-/* ==========================================================================
-   DYNAMIC IN-CALL HEIGHT EXTENSION
-   ========================================================================== */
-
-.app-window.is-in-call {
-    height: auto !important;
-    min-height: 800px !important;
-    max-height: calc(100vh - 24px);
-    transition: min-height 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.app-window.is-in-call .app-body {
-    height: auto !important;
-    min-height: calc(100% - 86px);
-}
-
-.app-window.is-in-call .workspace {
-    height: auto !important;
-    min-height: 0;
-}
-
-.app-window.is-in-call .tab-view-content {
-    height: auto !important;
-    min-height: 0;
-}
 
 /* ==========================================================================
    SOKRAT VOIP LOGIN SCREEN & VIEW SYSTEM

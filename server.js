@@ -504,12 +504,11 @@ app.get(['/api/trunk-call-state', '/phone/api/trunk-call-state'], async (req, re
             } catch (_) {}
         }
 
-        const result = { callerActive, trunkActive };
-        console.log('[trunk-call-state]', JSON.stringify(result));
+        const result = { success: true, callerActive, trunkActive };
         res.json(result);
     } catch (err) {
         console.error('[trunk-call-state] error:', err.message);
-        res.json({ callerActive: false, trunkActive: false });
+        res.json({ success: false, callerActive: true, trunkActive: true, error: err.message });
     }
 });
 // 404 Handler

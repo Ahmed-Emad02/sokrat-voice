@@ -18,6 +18,7 @@
         dnd: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
         autoAnswer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
         headphones: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
+        speaker: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
         users: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
         voicemail: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><line x1="6" y1="16" x2="18" y2="16"/></svg>',
         settings: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
@@ -43,7 +44,7 @@
             connect: 'اتصال',
             disconnect: 'قطع',
             cancel: 'إلغاء',
-            dialPlaceholder: '1-555-0199',
+            dialPlaceholder: 'أدخل الرقم للاتصال...',
             call: 'اتصال',
             answer: 'رد',
             decline: 'رفض',
@@ -93,7 +94,7 @@
             connect: 'Connect',
             disconnect: 'Disconnect',
             cancel: 'Cancel',
-            dialPlaceholder: '1-555-0199',
+            dialPlaceholder: 'Enter number...',
             call: 'Call',
             answer: 'Answer',
             decline: 'Decline',
@@ -161,6 +162,18 @@
     }
 
     class SokratSoftphoneUI {
+        minimize() {
+            if (window.sokratTelephonyHost && typeof window.sokratTelephonyHost.minimize === 'function') {
+                window.sokratTelephonyHost.minimize();
+                return;
+            }
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ version: 1, type: 'sokrat.voice.collapse' }, '*');
+                return;
+            }
+            window.postMessage({ version: 1, type: 'sokrat.voice.collapse' }, '*');
+        }
+
         constructor() {
             this.currentLang = (document.documentElement.lang === 'ar') ? 'ar' : 'en';
             this.t = I18N[this.currentLang] || I18N.en;
@@ -187,6 +200,21 @@
             this.currentCallQuality = null;
             this.incomingNotification = null;
             this.attendedTransferState = null;
+            this.maskPhoneNumbers = Boolean(window.SOFTPHONE_EMBED_CONFIG?.maskPhoneNumbers);
+            this.realDialNumber = '';
+        }
+
+        maskPhoneNumber(num) {
+            if (!num) return '';
+            const clean = String(num).trim();
+            if (clean.length < 7) return clean;
+            const isPlus = clean.startsWith('+');
+            const prefixLen = isPlus ? 5 : 4;
+            const suffixLen = 3;
+            if (clean.length <= (prefixLen + suffixLen)) {
+                return clean.slice(0, 3) + '****' + clean.slice(-2);
+            }
+            return clean.slice(0, prefixLen) + '****' + clean.slice(-suffixLen);
         }
 
         async init() {
@@ -201,8 +229,8 @@
             this.renderFavorites();
             this.renderContacts();
             this.renderSavedAccountsLoginList();
-            this.enumerateAudioDevices();
-            this.checkMicrophonePermissionInitial();
+            this.enumerateAudioDevices().catch(() => {});
+            this.checkMicrophonePermissionInitial().catch(() => {});
             this.requestNotificationPermissionInitial();
             this.startCallTimerTicker();
             this.updateInCallButtonStates();
@@ -210,12 +238,55 @@
             this.setupClickToCall();
             this.initVolumeControls();
 
-            if (this.core.regState === 'REGISTERED') {
+            // Embedded Session Auto-Connect from CRM
+            const embedCfg = window.SOFTPHONE_EMBED_CONFIG;
+            if (embedCfg && embedCfg.isEmbedded && embedCfg.autoConnect && embedCfg.embedPreset) {
+                const ep = embedCfg.embedPreset;
                 this.updateViewMode('console');
+                setTimeout(async () => {
+                    try {
+                        let targetWss = ep.wssUrl || (window.location.protocol === 'https:' ? 'wss://100.110.36.17:8443/ws' : 'ws://100.110.36.17:8088/ws');
+                        if (window.location.protocol === 'http:' && targetWss.startsWith('wss://')) {
+                            targetWss = targetWss.replace(/^wss:/, 'ws:').replace(/:8443\//, ':8088/');
+                        }
+                        await this.core.connect({
+                            id: ep.id || ('ext_' + ep.extension),
+                            extension: String(ep.extension),
+                            sipDomain: '100.110.36.17',
+                            wssUrl: targetWss,
+                            name: ep.name || ('Ext ' + ep.extension),
+                            label: `Ext ${ep.extension}`
+                        }, ep.secret);
+                    } catch (err) {
+                        console.error('[Embed AutoConnect] Failed:', err);
+                    }
+                }, 100);
             } else {
-                this.updateViewMode('login');
+                if (this.core.regState === 'REGISTERED') {
+                    this.updateViewMode('console');
+                } else {
+                    this.updateViewMode('login');
+                }
+            }
+
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    version: 1,
+                    type: 'sokrat.voice.ready',
+                    payload: {
+                        inCall: this.core.activeCalls ? (this.core.activeCalls.size > 0) : false,
+                        activeCallsCount: this.core.activeCalls ? this.core.activeCalls.size : 0
+                    }
+                }, '*');
+            }
+
+            if (!this.core.activeCalls || this.core.activeCalls.size === 0) {
+                const endedMsg = { version: 1, type: 'sokrat.voice.call_state', payload: { state: 'ended' } };
+                if (window.parent && window.parent !== window) window.parent.postMessage(endedMsg, '*');
+                window.postMessage(endedMsg, '*');
             }
         }
+
         cacheDom() {
             this.dom.statusBadge = document.getElementById('statusBadge');
             this.dom.statusText = document.getElementById('statusText');
@@ -227,11 +298,11 @@
             this.dom.keypad = document.getElementById('keypadGrid');
             this.dom.vuMeterBar = document.getElementById('vuMeterBar');
             this.dom.speakerVuMeterBar = document.getElementById('speakerVuMeterBar');
+            this.dom.activeCallContainer = document.getElementById('activeCallContainer');
             this.dom.micVolumeSlider = document.getElementById('micVolumeSlider');
             this.dom.micVolumeVal = document.getElementById('micVolumeVal');
             this.dom.speakerVolumeSlider = document.getElementById('speakerVolumeSlider');
             this.dom.speakerVolumeVal = document.getElementById('speakerVolumeVal');
-            this.dom.activeCallContainer = document.getElementById('activeCallContainer');
             this.dom.callHistoryList = document.getElementById('callHistoryList');
             this.dom.micBanner = document.getElementById('micBanner');
             this.dom.takeOverOverlay = document.getElementById('takeOverOverlay');
@@ -262,8 +333,10 @@
         }
 
         initVolumeControls() {
-            const savedMicVol = Number(localStorage.getItem('sokrat_mic_volume')) || 100;
-            const savedSpkVol = Number(localStorage.getItem('sokrat_speaker_volume')) || 100;
+            const savedMic = localStorage.getItem('sokrat_mic_volume');
+            const savedSpk = localStorage.getItem('sokrat_speaker_volume');
+            const savedMicVol = (savedMic !== null && !isNaN(Number(savedMic))) ? Number(savedMic) : 100;
+            const savedSpkVol = (savedSpk !== null && !isNaN(Number(savedSpk))) ? Number(savedSpk) : 100;
 
             this.core.setMicVolume(savedMicVol);
             this.core.setSpeakerVolume(savedSpkVol);
@@ -310,10 +383,12 @@
 
         refreshSegmentedVolumeDisplay(container, micVol, spkVol) {
             const NUM_SEGMENTS = 12;
-            const micActiveCount = Math.round(((micVol !== undefined ? micVol : (this.core.micVolume || 100)) / 100) * NUM_SEGMENTS);
-            const spkActiveCount = Math.round(((spkVol !== undefined ? spkVol : (this.core.speakerVolume || 100)) / 100) * NUM_SEGMENTS);
-            const actualMic = micVol !== undefined ? micVol : (this.core.micVolume || 100);
-            const actualSpk = spkVol !== undefined ? spkVol : (this.core.speakerVolume || 100);
+            const micVal = (micVol !== undefined) ? micVol : (this.core.micVolume ?? 100);
+            const spkVal = (spkVol !== undefined) ? spkVol : (this.core.speakerVolume ?? 100);
+            const micActiveCount = Math.round((micVal / 100) * NUM_SEGMENTS);
+            const spkActiveCount = Math.round((spkVal / 100) * NUM_SEGMENTS);
+            const actualMic = micVal;
+            const actualSpk = spkVal;
 
             const root = container || document;
             const micTracks = root.querySelectorAll('.mic-vol .vol-segments-track');
@@ -340,7 +415,7 @@
         }
 
         syncAllVolumeDisplays() {
-            this.refreshSegmentedVolumeDisplay(document, this.core.micVolume || 100, this.core.speakerVolume || 100);
+            this.refreshSegmentedVolumeDisplay(document, this.core.micVolume ?? 100, this.core.speakerVolume ?? 100);
         }
 
         updateSpectrumBars(containerSelector, bins) {
@@ -426,18 +501,18 @@
             const micPctBadge = document.createElement('div');
             micPctBadge.className = 'vol-pct-badge';
             micPctBadge.id = `${line}MicPct_${call.id}`;
-            micPctBadge.textContent = `${this.core.micVolume || 100}%`;
+            micPctBadge.textContent = `${this.core.micVolume ?? 100}%`;
             micVolCtrl.appendChild(micPctBadge);
 
             micMinusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.micVolume || 100;
+                const cur = this.core.micVolume ?? 100;
                 this.updateMicVolume(Math.max(0, cur - 10));
             });
 
             micPlusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.micVolume || 100;
+                const cur = this.core.micVolume ?? 100;
                 this.updateMicVolume(Math.min(100, cur + 10));
             });
 
@@ -505,25 +580,25 @@
             const spkPctBadge = document.createElement('div');
             spkPctBadge.className = 'vol-pct-badge';
             spkPctBadge.id = `${line}SpkPct_${call.id}`;
-            spkPctBadge.textContent = `${this.core.speakerVolume || 100}%`;
+            spkPctBadge.textContent = `${this.core.speakerVolume ?? 100}%`;
             spkVolCtrl.appendChild(spkPctBadge);
 
             spkMinusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.speakerVolume || 100;
+                const cur = this.core.speakerVolume ?? 100;
                 this.updateSpeakerVolume(Math.max(0, cur - 10));
             });
 
             spkPlusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.speakerVolume || 100;
+                const cur = this.core.speakerVolume ?? 100;
                 this.updateSpeakerVolume(Math.min(100, cur + 10));
             });
 
             spkChan.appendChild(spkVolCtrl);
             deck.appendChild(spkChan);
 
-            this.refreshSegmentedVolumeDisplay(deck, this.core.micVolume || 100, this.core.speakerVolume || 100);
+            this.refreshSegmentedVolumeDisplay(deck, this.core.micVolume ?? 100, this.core.speakerVolume ?? 100);
 
             return deck;
         }
@@ -876,14 +951,29 @@
             const titleEl = document.getElementById('activeAccountHeaderTitle');
 
             if (mode === 'console') {
-                if (loginView) loginView.style.display = 'none';
-                if (mainAppWindow) mainAppWindow.style.display = 'flex';
+                if (loginView) {
+                    loginView.style.setProperty('display', 'none', 'important');
+                    loginView.classList.add('hidden');
+                }
+                if (mainAppWindow) {
+                    mainAppWindow.style.setProperty('display', 'flex', 'important');
+                    mainAppWindow.classList.remove('hidden');
+                }
                 if (titleEl && this.core.activePreset) {
                     titleEl.textContent = 'Ext ' + this.core.activePreset.extension;
                 }
             } else {
-                if (loginView) loginView.style.display = 'flex';
-                if (mainAppWindow) mainAppWindow.style.display = 'none';
+                if (loginView) {
+                    loginView.style.setProperty('display', 'flex', 'important');
+                    loginView.classList.remove('hidden');
+                }
+                if (mainAppWindow) {
+                    mainAppWindow.style.setProperty('display', 'none', 'important');
+                    mainAppWindow.classList.add('hidden');
+                }
+                const workspace = document.getElementById('line1Workspace');
+                if (workspace) workspace.style.display = '';
+                if (this.dom.activeCallContainer) this.dom.activeCallContainer.style.display = 'none';
                 const submitBtn = document.getElementById('loginSubmitBtn');
                 if (submitBtn) {
                     submitBtn.disabled = false;
@@ -983,7 +1073,7 @@
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             </button>
-                            <input type="text" id="line2DialInput" placeholder="1-555-0199" class="dialer-input" autocomplete="off">
+                            <input type="text" id="line2DialInput" placeholder="${t.dialPlaceholder}" class="dialer-input" autocomplete="off">
                             <button type="button" class="clear-input-btn" id="line2BackspaceBtn" title="Backspace">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
                             </button>
@@ -1014,7 +1104,7 @@
                         <!-- Line 2 Live In-Call & Toggle Tools Bar -->
                         <div class="dialer-tool-bar">
                             <button type="button" class="tool-icon-btn" id="line2ToolBtnSpeakerMute" title="${t.speaker}">
-                                ${SVG_ICONS.headphones}
+                                ${SVG_ICONS.speaker}
                                 <span class="tool-label">${t.speaker}</span>
                             </button>
                             <button type="button" class="tool-icon-btn" id="line2ToolBtnDnd" title="${t.dnd}">
@@ -1340,18 +1430,17 @@
                 card.appendChild(this.createHeroAudioDeck(call, 'line2'));
 
                 // Actions Row
-                const actionsRow = document.createElement('div');
-                actionsRow.className = 'hero-actions-row';
-
                 const isIncomingRinging = (call.direction === 'incoming' && !call.answerTime);
+                const actionsRow = document.createElement('div');
+                actionsRow.className = isIncomingRinging ? 'hero-actions-row hero-actions-row--incoming' : 'hero-actions-row';
                 if (isIncomingRinging) {
                     const answerBtn = document.createElement('button');
-                    answerBtn.className = 'end-call-btn btn-answer';
+                    answerBtn.className = 'end-call-btn btn-answer call-action--answer';
                     answerBtn.innerHTML = `${SVG_ICONS.phone}<span>${this.currentLang === 'ar' ? 'رد' : 'Answer'}</span>`;
                     answerBtn.onclick = () => this.line2Core.answerCall(call.id);
 
                     const declineBtn = document.createElement('button');
-                    declineBtn.className = 'end-call-btn';
+                    declineBtn.className = 'end-call-btn btn-decline call-action--decline';
                     declineBtn.innerHTML = `${SVG_ICONS.phoneOff}<span>${this.currentLang === 'ar' ? 'رفض' : 'Decline'}</span>`;
                     declineBtn.onclick = () => this.line2Core.hangupCall(call.id);
 
@@ -1359,7 +1448,7 @@
                     actionsRow.appendChild(declineBtn);
                 } else {
                     const endBtn = document.createElement('button');
-                    endBtn.className = 'end-call-btn';
+                    endBtn.className = 'end-call-btn btn-hangup call-action--end';
                     endBtn.innerHTML = `${SVG_ICONS.phoneOff}<span>${this.currentLang === 'ar' ? 'إنهاء' : 'End Call'}</span>`;
                     endBtn.onclick = () => this.line2Core.hangupCall(call.id);
 
@@ -1440,8 +1529,8 @@
                     <div class="recent-left">
                         <div class="recent-avatar">${(c.name || 'C').charAt(0).toUpperCase()}</div>
                         <div class="recent-info">
-                            <div class="recent-name">${c.name || c.number}</div>
-                            <div class="recent-dir font-mono" style="color:var(--text-muted);">${c.number}</div>
+                            <div class="recent-name" title="${c.name || c.number}">${c.name || c.number}</div>
+                            <div class="contact-phone-number">${c.number}</div>
                         </div>
                     </div>
                     <div class="recent-right">
@@ -1594,6 +1683,7 @@
                     if (p.isDefault) opt.selected = true;
                     this.dom.presetSelect.appendChild(opt);
                 });
+                this.renderCustomExtDropdown(presets);
             }
 
             if (this.dom.loginExtSelect) {
@@ -1623,6 +1713,7 @@
             this.savePresets(presets);
             this.onPresetChanged();
         }
+
         getSelectedPreset() {
             if (!this.dom.presetSelect) return null;
             const id = this.dom.presetSelect.value;
@@ -1633,6 +1724,8 @@
         onPresetChanged() {
             const preset = this.getSelectedPreset();
             if (!preset) return;
+
+            this.syncCustomExtTrigger();
 
             if (this.dom.dndCheckbox) this.dom.dndCheckbox.checked = Boolean(preset.dnd);
             if (this.dom.autoAnswerCheckbox) this.dom.autoAnswerCheckbox.checked = Boolean(preset.autoAnswer);
@@ -1654,6 +1747,26 @@
                         this.dom.connectBtn.click();
                     }
                 }, 100);
+            }
+        }
+
+        renderCustomExtDropdown(presets = null) {
+            this.syncCustomExtTrigger();
+        }
+
+        toggleCustomExtDropdown(e) {
+            if (e) e.stopPropagation();
+        }
+
+        closeCustomExtDropdown() {
+        }
+
+        syncCustomExtTrigger() {
+            const triggerLabel = document.getElementById('customExtTriggerLabel');
+            if (!triggerLabel) return;
+            const preset = (this.core && this.core.activePreset) || this.getSelectedPreset();
+            if (preset) {
+                triggerLabel.textContent = preset.label || `Ext ${preset.extension}`;
             }
         }
 
@@ -1927,9 +2040,7 @@
                     <span>${this.currentLang === 'ar' ? 'تسجيل الدخول والاتصال بالتحويلة ↗' : `1-Click Connect to Ext ${p.extension} ↗`}</span>`;
 
                 quickBtn.onclick = async () => {
-                    this.switchModalTab('saved');
-            this.renderModalSavedAccounts();
-            this.showToast('Account saved successfully', 'success');
+                    this.closePresetModal();
                     // Select in topbar
                     if (this.dom.presetSelect) {
                         this.dom.presetSelect.value = p.id;
@@ -1945,8 +2056,7 @@
                         } catch (err) {
                             this.showToast(err.message, 'error');
                         }
-                    } else if (this.dom.passwordInput) {
-                        this.dom.passwordInput.focus();
+                    } else {
                         this.showToast(`Enter password for Ext ${p.extension}`, 'warning');
                     }
                 };
@@ -2107,9 +2217,32 @@
 
         // --- CORE EVENT BINDINGS ---
         bindCoreEvents() {
-            this.core.on('regStateChange', ({ state }) => this.updateStatusUi(state));
+            this.core.on('regStateChange', ({ state }) => {
+                this.updateStatusUi(state);
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        version: 1,
+                        type: 'sokrat.voice.registration',
+                        payload: {
+                            state: state === 'REGISTERED' ? 'REGISTERED' : 'DISCONNECTED',
+                            extension: this.core.activePreset ? this.core.activePreset.extension : ''
+                        }
+                    }, '*');
+                }
+            });
             this.core.on('registered', () => {
                 this.updateViewMode('console');
+                this.syncCustomExtTrigger();
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        version: 1,
+                        type: 'sokrat.voice.registration',
+                        payload: {
+                            state: 'REGISTERED',
+                            extension: this.core.activePreset ? this.core.activePreset.extension : ''
+                        }
+                    }, '*');
+                }
             });
             this.core.on('unregistered', () => {
                 if (this.core.activePreset) {
@@ -2117,7 +2250,9 @@
                 }
             });
             this.core.on('authFailed', () => {
-                this.updateViewMode('login');
+                if (!window.SOFTPHONE_EMBED_CONFIG?.isEmbedded) {
+                    this.updateViewMode('login');
+                }
                 this.showToast(this.t.toastAuthFailed, 'error');
             });
             this.core.on('speakerLevel', (level) => {
@@ -2130,26 +2265,60 @@
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.showIncomingNotification(callEntry);
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.incoming',
+                    payload: { phone: callEntry?.target || 'Unknown', callId: callEntry?.id }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
-            this.core.on('callProgress', () => {
+            this.core.on('callProgress', (callEntry) => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.call_state',
+                    payload: { state: 'ringing', phone: callEntry?.target || '' }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
-            this.core.on('callAnswered', () => {
+            this.core.on('callAnswered', (callEntry) => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.dismissNotification();
+                const startTimeMs = (callEntry?.answerTime instanceof Date) ? callEntry.answerTime.getTime() : Date.now();
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.call_state',
+                    payload: {
+                        state: 'in_call',
+                        phone: callEntry?.target || '',
+                        callId: callEntry?.id,
+                        startTime: startTimeMs
+                    }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
             this.core.on('callUpdated', () => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
             });
-            this.core.on('callEnded', () => {
+            this.core.on('callEnded', (data) => {
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.dismissNotification();
                 this.currentCallQuality = null;
                 this.attendedTransferState = null;
+                const msg = {
+                    version: 1,
+                    type: 'sokrat.voice.call_state',
+                    payload: { state: 'ended', callId: data?.callId }
+                };
+                if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
+                window.postMessage(msg, '*');
             });
             this.core.on('callLog', (logEntry) => this.addCallLog({ ...logEntry, line: 'line1' }));
             this.core.on('toast', ({ type, message }) => this.showToast(message, type));
@@ -2192,8 +2361,8 @@
                 case 'REGISTERED':
                     this.dom.statusBadge.classList.add('online');
                     this.dom.statusText.textContent = this.t.statusOnline;
-                    this.dom.connectBtn.textContent = this.t.disconnect;
-                    this.dom.connectBtn.className = 'btn btn-danger';
+                    this.dom.connectBtn.textContent = this.currentLang === 'ar' ? 'خروج' : 'Sign Out';
+                    this.dom.connectBtn.className = 'compact-connect-btn btn-danger';
                     if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'CONNECTING':
@@ -2201,27 +2370,27 @@
                     this.dom.statusText.textContent = this.t.statusConnecting;
                     this.dom.connectBtn.textContent = this.t.cancel || 'Cancel';
                     this.dom.connectBtn.className = 'btn btn-danger';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'RETRY_WAIT':
                     this.dom.statusBadge.classList.add('ringing');
                     this.dom.connectBtn.textContent = this.t.cancel || 'Cancel';
                     this.dom.connectBtn.className = 'btn btn-danger';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'AUTH_FAILED':
                     this.dom.statusBadge.classList.add('incall');
                     this.dom.statusText.textContent = this.t.statusAuthFailed;
                     this.dom.connectBtn.textContent = this.t.connect;
                     this.dom.connectBtn.className = 'btn btn-primary';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'DISCONNECTED':
                 default:
                     this.dom.statusText.textContent = this.t.statusOffline;
                     this.dom.connectBtn.textContent = this.t.connect;
                     this.dom.connectBtn.className = 'btn btn-primary';
-                    if (this.dom.callBtn) this.dom.callBtn.disabled = true;
+                    if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
             }
         }
@@ -2266,13 +2435,33 @@
         startCallTimerTicker() {
             if (this.callTimerInterval) clearInterval(this.callTimerInterval);
             this.callTimerInterval = setInterval(() => {
+                let firstFormatted = null;
+                let firstSec = null;
                 document.querySelectorAll('[data-timer-start]').forEach(el => {
                     const start = parseInt(el.dataset.timerStart, 10);
                     if (start > 0) {
                         const sec = Math.max(0, Math.floor((Date.now() - start) / 1000));
-                        el.textContent = this.formatDuration(sec);
+                        const formatted = this.formatDuration(sec);
+                        el.textContent = formatted;
+                        if (firstFormatted === null) {
+                            firstFormatted = formatted;
+                            firstSec = sec;
+                        }
                     }
                 });
+
+                if (firstFormatted !== null) {
+                    const syncMsg = {
+                        version: 1,
+                        type: 'sokrat.voice.timer_sync',
+                        payload: {
+                            seconds: firstSec,
+                            formatted: firstFormatted
+                        }
+                    };
+                    if (window.parent && window.parent !== window) window.parent.postMessage(syncMsg, '*');
+                    window.postMessage(syncMsg, '*');
+                }
             }, 1000);
         }
 
@@ -2302,12 +2491,24 @@
             container.textContent = '';
 
             const calls = Array.from(this.core.activeCalls.values());
+            const workspace = document.getElementById('line1Workspace');
+
             if (calls.length === 0) {
                 container.style.display = 'none';
+                container.classList.add('hidden');
+                if (workspace) {
+                    workspace.classList.remove('hidden');
+                    workspace.style.removeProperty('display');
+                }
                 return;
             }
 
-            container.style.display = 'flex';
+            if (workspace) {
+                workspace.classList.add('hidden');
+                workspace.style.setProperty('display', 'none', 'important');
+            }
+            container.classList.remove('hidden');
+            container.style.setProperty('display', 'flex', 'important');
             calls.forEach(call => {
                 const card = document.createElement('div');
                 card.className = `active-call-hero ${call.status === 'ringing' ? 'ringing' : ''}`;
@@ -2318,15 +2519,16 @@
 
                 const cardTitle = document.createElement('div');
                 cardTitle.className = 'text-xs font-bold text-muted';
+                const displayTarget = this.maskPhoneNumbers ? this.maskPhoneNumber(call.target) : call.target;
                 if (!call.answerTime) {
                     if (call.direction === 'incoming') {
-                        cardTitle.textContent = (this.currentLang === 'ar' ? 'مكالمة واردة من: ' : 'Incoming Call from: ') + call.target;
+                        cardTitle.textContent = (this.currentLang === 'ar' ? 'مكالمة واردة من: ' : 'Incoming Call from: ') + displayTarget;
                         cardTitle.style.color = '#10b981';
                     } else {
-                        cardTitle.textContent = (this.currentLang === 'ar' ? 'جاري الاتصال بـ: ' : 'Calling: ') + call.target;
+                        cardTitle.textContent = (this.currentLang === 'ar' ? 'جاري الاتصال بـ: ' : 'Calling: ') + displayTarget;
                     }
                 } else {
-                    cardTitle.textContent = `${this.t.activeCallTitle} ${call.target}`;
+                    cardTitle.textContent = `${this.t.activeCallTitle} ${displayTarget}`;
                 }
                 titleRow.appendChild(cardTitle);
 
@@ -2375,6 +2577,7 @@
                     nameDiv.textContent = call.target || call.displayName || (this.currentLang === 'ar' ? 'مكالمة واردة' : 'Incoming Call');
                     nameCol.appendChild(nameDiv);
                 }
+
                 const timerDiv = document.createElement('div');
                 timerDiv.className = 'hero-timer font-mono';
                 if (call.answerTime) {
@@ -2443,62 +2646,110 @@
                 }
 
                 // Action Buttons Row with Vector SVGs
-                const actionsRow = document.createElement('div');
-                actionsRow.className = 'hero-actions-row';
-
                 const isIncomingRinging = (call.direction === 'incoming' && !call.answerTime);
 
                 if (isIncomingRinging) {
+                    const actionsRow = document.createElement('div');
+                    actionsRow.className = 'hero-actions-row hero-actions-row--incoming';
+
                     const answerBtn = document.createElement('button');
-                    answerBtn.className = 'end-call-btn';
-                    answerBtn.style.cssText = 'background:#10b981 !important; color:#ffffff !important; box-shadow:0 4px 12px rgba(16,185,129,0.35); flex:1.5; font-weight:800;';
+                    answerBtn.className = 'end-call-btn btn-answer call-action--answer';
                     setButtonContent(answerBtn, SVG_ICONS.phone, this.t.answer || 'Answer');
                     answerBtn.addEventListener('click', () => this.core.answerCall(call.id));
 
+                    const transferRingingBtn = document.createElement('button');
+                    transferRingingBtn.className = 'end-call-btn btn-transfer call-action--transfer';
+                    setButtonContent(transferRingingBtn, SVG_ICONS.transfer, this.t.transfer || 'Transfer');
+                    transferRingingBtn.addEventListener('click', () => this.openTransferModal(call.id));
+
                     const declineBtn = document.createElement('button');
-                    declineBtn.className = 'end-call-btn';
-                    declineBtn.style.cssText = 'background:#ef4444 !important; color:#ffffff !important; flex:1; font-weight:800;';
+                    declineBtn.className = 'end-call-btn btn-decline call-action--decline';
                     setButtonContent(declineBtn, SVG_ICONS.phoneOff, this.t.decline || 'Decline');
                     declineBtn.addEventListener('click', () => this.core.hangupCall(call.id));
 
                     actionsRow.appendChild(answerBtn);
+                    actionsRow.appendChild(transferRingingBtn);
                     actionsRow.appendChild(declineBtn);
+                    card.appendChild(actionsRow);
                 } else {
-                    // End Call Button
-                    const endBtn = document.createElement('button');
-                    endBtn.className = 'end-call-btn';
-                    setButtonContent(endBtn, SVG_ICONS.phoneOff, this.t.endCall);
-                    endBtn.addEventListener('click', () => this.core.hangupCall(call.id));
+                    // In-Call DTMF Keypad (for navigating automated IVR menus)
+                    const dtmfSection = document.createElement('div');
+                    dtmfSection.className = 'in-call-dtmf-section';
+                    // DTMF input display box
+                    const dtmfDisplay = document.createElement('div');
+                    dtmfDisplay.className = 'dtmf-input-display';
+                    dtmfDisplay.id = `dtmfDisplay_${call.id}`;
+                    dtmfDisplay.textContent = '';
+                    dtmfSection.appendChild(dtmfDisplay);
 
-                    // Mute Button (With active-mute class)
+                    const dtmfGrid = document.createElement('div');
+                    dtmfGrid.className = 'in-call-dtmf-grid';
+
+                    const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+                    dtmfKeys.forEach(k => {
+                        const kBtn = document.createElement('button');
+                        kBtn.type = 'button';
+                        kBtn.className = 'dtmf-key-btn';
+                        kBtn.textContent = k;
+                        kBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            try {
+                                if (call.session) {
+                                    call.session.sendDTMF(k);
+                                    this.core.playDtmfSidetone(k);
+                                    const display = document.getElementById(`dtmfDisplay_${call.id}`);
+                                    if (display) {
+                                        display.textContent += k;
+                                        display.scrollLeft = display.scrollWidth;
+                                    }
+                                }
+                            } catch (_) {}
+                        });
+                        dtmfGrid.appendChild(kBtn);
+                    });
+                    dtmfSection.appendChild(dtmfGrid);
+                    card.appendChild(dtmfSection);
+
+                    // Row 1: In-call Control Actions (Mute, Hold, Transfer)
+                    const actionsRow = document.createElement('div');
+                    actionsRow.className = 'hero-actions-row';
+
                     const muteBtn = document.createElement('button');
                     muteBtn.className = `hero-pill-action ${call.isMuted ? 'active-mute' : ''}`;
-                    setButtonContent(muteBtn, call.isMuted ? SVG_ICONS.micOff : SVG_ICONS.mic, call.isMuted ? this.t.unmute : this.t.mute);
+                    setButtonContent(muteBtn, null, call.isMuted ? this.t.unmute : this.t.mute);
                     muteBtn.addEventListener('click', () => {
                         this.core.toggleMute(call.id);
                     });
 
-                    // Hold Button (With active-hold class)
                     const holdBtn = document.createElement('button');
                     holdBtn.className = `hero-pill-action ${call.isHeld ? 'active-hold' : ''}`;
-                    setButtonContent(holdBtn, call.isHeld ? SVG_ICONS.play : SVG_ICONS.pause, call.isHeld ? this.t.unhold : this.t.hold);
+                    setButtonContent(holdBtn, null, call.isHeld ? this.t.unhold : this.t.hold);
                     holdBtn.addEventListener('click', () => {
                         this.core.toggleHold(call.id);
                     });
 
-                    // Transfer Button
                     const transferBtn = document.createElement('button');
                     transferBtn.className = 'hero-pill-action';
-                    setButtonContent(transferBtn, SVG_ICONS.transfer, this.t.transfer);
+                    setButtonContent(transferBtn, null, this.t.transfer);
                     transferBtn.addEventListener('click', () => this.openTransferModal(call.id));
 
-                    actionsRow.appendChild(endBtn);
                     actionsRow.appendChild(muteBtn);
                     actionsRow.appendChild(holdBtn);
                     actionsRow.appendChild(transferBtn);
-                }
+                    card.appendChild(actionsRow);
 
-                card.appendChild(actionsRow);
+                    // Row 2: Full-width End Call Button
+                    const hangupRow = document.createElement('div');
+                    hangupRow.className = 'hero-hangup-row';
+
+                    const endBtn = document.createElement('button');
+                    endBtn.className = 'end-call-btn btn-hangup call-action--end';
+                    setButtonContent(endBtn, SVG_ICONS.phoneOff, this.t.endCall);
+                    endBtn.addEventListener('click', () => this.core.hangupCall(call.id));
+
+                    hangupRow.appendChild(endBtn);
+                    card.appendChild(hangupRow);
+                }
 
                 // Render recording indicator if active
                 if (call.isRecording) {
@@ -2861,11 +3112,11 @@
                     nameSpan.textContent = contactMatch.name;
                     const numDiv = document.createElement('div');
                     numDiv.className = 'text-xs text-muted font-mono';
-                    numDiv.textContent = log.target;
+                    numDiv.textContent = this.maskPhoneNumbers ? this.maskPhoneNumber(log.target) : log.target;
                     info.appendChild(nameSpan);
                     info.appendChild(numDiv);
                 } else {
-                    nameSpan.textContent = log.target;
+                    nameSpan.textContent = this.maskPhoneNumbers ? this.maskPhoneNumber(log.target) : log.target;
                     info.appendChild(nameSpan);
                 }
 
@@ -2891,7 +3142,8 @@
                 setButtonContent(callBtn, SVG_ICONS.phone, '');
                 callBtn.title = 'Call';
                 callBtn.addEventListener('click', () => {
-                    this.dom.dialInput.value = log.target;
+                    this.realDialNumber = log.target;
+                    this.dom.dialInput.value = this.maskPhoneNumbers ? this.maskPhoneNumber(log.target) : log.target;
                     this.handleCallAction();
                 });
 
@@ -2969,6 +3221,14 @@
 
         async checkMicrophonePermissionInitial() {
             try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    await this.core.acquireMicrophone();
+                    if (this.dom.micBanner) this.dom.micBanner.style.display = 'none';
+                    return;
+                }
+            } catch (_) {}
+
+            try {
                 if (navigator.permissions && navigator.permissions.query) {
                     const res = await navigator.permissions.query({ name: 'microphone' });
                     if (res.state === 'granted') {
@@ -2978,7 +3238,9 @@
                     }
                 }
             } catch (_) {}
-            if (this.dom.micBanner) this.dom.micBanner.style.display = 'flex';
+            if (this.dom.micBanner && !window.navigator.userAgent.includes('Electron')) {
+                this.dom.micBanner.style.display = 'flex';
+            }
         }
 
         // --- DOM ACTIONS & HOTKEYS ---
@@ -2986,6 +3248,18 @@
             if (this.dom.presetSelect) {
                 this.dom.presetSelect.addEventListener('change', () => this.onPresetChanged());
             }
+
+            // Custom extension dropdown outside-click and escape handling
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.custom-ext-dropdown-container')) {
+                    this.closeCustomExtDropdown();
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.closeCustomExtDropdown();
+                }
+            });
             if (this.dom.passwordInput) {
                 this.dom.passwordInput.addEventListener('input', () => {
                     const preset = this.getSelectedPreset();
@@ -2998,7 +3272,7 @@
             if (this.dom.connectBtn) {
                 this.dom.connectBtn.addEventListener('click', async () => {
                     if (this.core.regState === 'REGISTERED' || this.core.regState === 'CONNECTING' || this.core.regState === 'RETRY_WAIT') {
-                        this.core.disconnect();
+                        this.logout();
                     } else {
                         const preset = this.getSelectedPreset();
                         if (!preset) {
@@ -3027,6 +3301,7 @@
                     this.handleCallAction();
                 }
             });
+
             // Close dial history dropdown on outside click or Escape
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.dialer-input-box')) {
@@ -3038,43 +3313,37 @@
                     this.closeDialHistoryDropdown();
                 }
             });
-
             // Keypad clicks
             document.querySelectorAll('.keypad-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const digit = btn.dataset.digit;
                     if (!digit) return;
                     this.dom.dialInput.value += digit;
-                    const activeCall = Array.from(this.core.activeCalls.values())[0];
-                    if (activeCall) {
-                        this.core.sendDtmf(activeCall.id, digit);
-                    } else {
-                        this.core.playDtmfSidetone(digit);
-                    }
                 });
             });
 
-            // Preferences with Policy Lock Interceptors
-            this.dom.dndCheckbox.addEventListener('change', () => {
-                const preset = this.getSelectedPreset();
-                const extNum = preset ? String(preset.extension) : '';
-                const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
-                if (policy && policy.dnd !== 'user_choice') {
-                    this.dom.dndCheckbox.checked = policy.dnd === 'force_on';
-                    this.showToast(policy.dnd === 'force_on' ? 'DND is locked ON by Administrator' : 'DND is prohibited by Administrator', 'warning');
-                    return;
-                }
-                this.core.isDnd = this.dom.dndCheckbox.checked;
-                if (this.dom.toolBtnDnd) this.dom.toolBtnDnd.classList.toggle('active-dnd', this.core.isDnd);
-                if (preset) {
-                    preset.dnd = this.core.isDnd;
-                    let presets = this.getPresets();
-                    const idx = presets.findIndex(p => p.id === preset.id);
-                    if (idx >= 0) presets[idx].dnd = preset.dnd;
-                    this.savePresets(presets);
-                }
-                this.showToast(this.core.isDnd ? 'DND Enabled (Busy Here)' : 'DND Disabled', this.core.isDnd ? 'warning' : 'info');
-            });
+            if (this.dom.dndCheckbox) {
+                this.dom.dndCheckbox.addEventListener('change', () => {
+                    const preset = this.getSelectedPreset();
+                    const extNum = preset ? String(preset.extension) : '';
+                    const policy = (this.extensionPolicies && extNum) ? this.extensionPolicies.get(extNum) : null;
+                    if (policy && policy.dnd !== 'user_choice') {
+                        this.dom.dndCheckbox.checked = policy.dnd === 'force_on';
+                        this.showToast(policy.dnd === 'force_on' ? 'DND is locked ON by Administrator' : 'DND is prohibited by Administrator', 'warning');
+                        return;
+                    }
+                    this.core.isDnd = this.dom.dndCheckbox.checked;
+                    if (this.dom.toolBtnDnd) this.dom.toolBtnDnd.classList.toggle('active-dnd', this.core.isDnd);
+                    if (preset) {
+                        preset.dnd = this.core.isDnd;
+                        let presets = this.getPresets();
+                        const idx = presets.findIndex(p => p.id === preset.id);
+                        if (idx >= 0) presets[idx].dnd = preset.dnd;
+                        this.savePresets(presets);
+                    }
+                    this.showToast(this.core.isDnd ? 'DND Enabled (Busy Here)' : 'DND Disabled', this.core.isDnd ? 'warning' : 'info');
+                });
+            }
 
             this.dom.autoAnswerCheckbox.addEventListener('change', () => {
                 const preset = this.getSelectedPreset();
@@ -3139,12 +3408,76 @@
                 this.showToast(this.currentLang === 'ar' ? 'يوجد مكالمة نشطة بالفعل' : 'A call is already in progress', 'warning');
                 return;
             }
-            const num = this.dom.dialInput.value.trim();
+            const num = (this.realDialNumber && this.maskPhoneNumbers && this.dom.dialInput.value.includes('*'))
+                ? this.realDialNumber
+                : this.dom.dialInput.value.trim();
             if (!num) return;
+
+            if (this.core.regState !== 'REGISTERED') {
+                this.pendingCallTarget = num;
+                this.showToast(this.currentLang === 'ar' ? `جاري الاتصال بالسنترال لطلب ${num}...` : `Connecting to call ${num}...`, 'info');
+                const preset = this.getSelectedPreset();
+                const secret = preset ? (preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || '') : '';
+                if (preset && secret) {
+                    this.core.connect(preset, secret).catch(() => {});
+                }
+                this.core.once('registered', () => {
+                    if (this.pendingCallTarget === num) {
+                        setTimeout(() => {
+                            if (this.pendingCallTarget === num) {
+                                this.core.makeCall(num);
+                                this.pendingCallTarget = null;
+                                this.realDialNumber = '';
+                            }
+                        }, 300);
+                    }
+                });
+                return;
+            }
+
             try {
                 this.core.makeCall(num);
+                this.realDialNumber = '';
             } catch (err) {
                 this.showToast(err.message, 'error');
+            }
+        }
+
+        redialLastNumber() {
+            const history = this.getDialedHistory('line1');
+            if (history && history.length > 0) {
+                const lastNum = history[0];
+                if (this.dom.dialInput) {
+                    this.dom.dialInput.value = lastNum;
+                }
+                this.handleCallAction();
+            } else {
+                this.showToast(this.currentLang === 'ar' ? 'لا يوجد رقم سابق لإعادة طلبه' : 'No previous call to redial', 'info');
+            }
+        }
+
+        // --- RELOAD EXTENSION CONNECTION ---
+        async reloadConnection() {
+            const isAr = this.currentLang === 'ar';
+            const reloadBtn = document.getElementById('titlebarReloadBtn');
+            if (reloadBtn) reloadBtn.classList.add('spinning');
+            this.showToast(isAr ? 'جاري إعادة الاتصال بالسنترال...' : 'Reloading Asterisk connection...', 'info');
+
+            try {
+                const preset = this.getSelectedPreset() || (this.core && this.core.activePreset);
+                const secret = (preset ? (preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || (this.core && this.core.lastSecret) || '') : '');
+                if (preset && secret) {
+                    await this.core.connect(preset, secret);
+                } else {
+                    await this.core.reconnect();
+                }
+                this.showToast(isAr ? 'تم تحديث الاتصال بالسنترال بنجاح' : 'Asterisk connection reloaded successfully', 'success');
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            } finally {
+                setTimeout(() => {
+                    if (reloadBtn) reloadBtn.classList.remove('spinning');
+                }, 600);
             }
         }
 
@@ -3430,6 +3763,7 @@
 
             return null;
         }
+
         renderContacts(filter) {
             // Find or create the contacts section in the right column
             let section = document.getElementById('contactsSection');
@@ -3566,12 +3900,11 @@
                 const nameSpan = document.createElement('div');
                 nameSpan.className = 'recent-name';
                 nameSpan.textContent = contact.name || contact.number;
+                nameSpan.title = contact.name || contact.number;
 
                 const numSpan = document.createElement('div');
-                numSpan.className = 'recent-dir font-mono';
-                numSpan.style.color = 'var(--text-muted)';
+                numSpan.className = 'contact-phone-number';
                 numSpan.textContent = contact.number;
-
                 info.appendChild(nameSpan);
                 info.appendChild(numSpan);
                 left.appendChild(avatar);
@@ -3580,6 +3913,7 @@
                 const right = document.createElement('div');
                 right.className = 'recent-right';
                 right.style.cssText = 'display:flex;align-items:center;gap:3px;';
+
 
                 // Favorite toggle
                 const favBtn = document.createElement('button');
@@ -3966,7 +4300,7 @@
                 }
             };
 
-            // 1. Process URL query parameters (?call=101 or ?dial=101)
+            // 1. Process URL search parameters (?call=101 or ?dial=101)
             const handleUrlParams = () => {
                 const params = new URLSearchParams(window.location.search);
                 const rawCall = params.get('call') || params.get('number') || params.get('phone');
@@ -4014,16 +4348,25 @@
                 }
                 const data = event.data;
                 if (!data) return;
-                if (data.type === 'CLICK_TO_CALL' || data.type === 'DIAL' || data.action === 'call' || data.action === 'dial') {
-                    const raw = data.number || data.phone || data.target || data.ext;
-                    const autoCall = data.autoCall !== false && data.auto !== false;
+                if (data.type === 'sokrat.voice.dial' || data.type === 'CLICK_TO_CALL' || data.type === 'DIAL' || data.action === 'call' || data.action === 'dial') {
+                    const raw = data.payload?.phone || data.number || data.phone || data.target || data.ext;
+                    const autoCall = data.payload ? (data.payload.autoCall !== false) : (data.autoCall !== false && data.auto !== false);
                     const target = sanitize(raw);
                     if (target) {
                         this.clickToCall(target, autoCall);
                     }
+                } else if (data.type === 'sokrat.voice.hangup' || data.type === 'HANGUP' || data.action === 'hangup') {
+                    const activeCall = Array.from(this.core.activeCalls.values())[0];
+                    if (activeCall) {
+                        this.core.hangupCall(activeCall.id);
+                    }
+                } else if (data.type === 'sokrat.voice.toggle_mute' || data.type === 'MUTE' || data.action === 'mute' || data.action === 'toggle_mute') {
+                    const activeCall = Array.from(this.core.activeCalls.values())[0];
+                    if (activeCall) {
+                        this.core.toggleMute(activeCall.id);
+                    }
                 }
             });
-
             // 4. BroadcastChannel Listener (for multi-tab / Sokrat VoIP dashboard integration)
             try {
                 if (typeof BroadcastChannel !== 'undefined') {
@@ -4037,11 +4380,16 @@
                             if (target) {
                                 this.clickToCall(target, autoCall);
                             }
+                        } else if (data && (data.type === 'sokrat.voice.hangup' || data.type === 'HANGUP' || data.action === 'hangup')) {
+                            const activeCall = Array.from(this.core.activeCalls.values())[0];
+                            if (activeCall) this.core.hangupCall(activeCall.id);
+                        } else if (data && (data.type === 'sokrat.voice.toggle_mute' || data.type === 'MUTE' || data.action === 'mute')) {
+                            const activeCall = Array.from(this.core.activeCalls.values())[0];
+                            if (activeCall) this.core.toggleMute(activeCall.id);
                         }
                     });
                 }
             } catch (_) {}
-
             // 5. Global helper functions
             window.sokratClickToCall = (number, autoCall = true) => this.clickToCall(sanitize(number), autoCall);
             window.softphoneClickToCall = (number, autoCall = true) => this.clickToCall(sanitize(number), autoCall);
@@ -4055,8 +4403,9 @@
             this.switchTab('dialer');
 
             // Populate input
+            this.realDialNumber = cleanNum;
             if (this.dom.dialInput) {
-                this.dom.dialInput.value = cleanNum;
+                this.dom.dialInput.value = this.maskPhoneNumbers ? this.maskPhoneNumber(cleanNum) : cleanNum;
             }
 
             if (autoCall) {
@@ -4097,9 +4446,10 @@
     }
 
     function startSoftphoneApp() {
-        if (!window.softphoneUi) {
-            window.softphoneUi = new SokratSoftphoneUI();
-            window.softphoneUi.init();
+        if (!window._realSoftphoneUi) {
+            window._realSoftphoneUi = new SokratSoftphoneUI();
+            window.softphoneUi = window._realSoftphoneUi;
+            window._realSoftphoneUi.init();
         }
     }
 

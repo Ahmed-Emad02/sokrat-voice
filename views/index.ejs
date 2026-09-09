@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<%= currentLang %>" dir="<%= isRtl ? 'rtl' : 'ltr' %>" class="<%= typeof isEmbedded !== 'undefined' && isEmbedded ? 'is-embedded' : '' %>">
+<html lang="<%= currentLang %>" dir="<%= isRtl ? 'rtl' : 'ltr' %>"<%= (typeof isEmbedded !== 'undefined' && isEmbedded) ? ' class="is-embedded"' : '' %>>
 <head>
     <script>
         // Automatic HTTPS upgrade to ensure Secure Context for WebRTC microphone permission (standalone top-level only, never on port 8080 or in Electron)
@@ -121,9 +121,9 @@
     --radius-lg: 12px;
     --radius-xl: 16px;
     --radius-full: 9999px;
-    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    --font-main: 'JetBrains Mono', 'Cairo', monospace, sans-serif;
     --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-mono: 'JetBrains Mono', 'Cairo', monospace;
     --bg-primary: #09090b;
     --bg-secondary: #121215;
     --bg-card: #18181b;
@@ -176,6 +176,14 @@ body, button, input, select, textarea, optgroup, option {
     margin: 0;
     padding: 0;
     font-family: var(--font-main) !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+svg {
+    shape-rendering: geometricPrecision !important;
+    text-rendering: geometricPrecision !important;
 }
 
 .dialer-input,
@@ -261,7 +269,6 @@ body.is-embedded .app-window, html.is-embedded .app-window {
 .shutter-btn, .keypad-btn, .recent-call-btn, .tool-icon-btn, .transfer-ext-btn, .btn-primary, .btn-secondary, .btn-danger, .btn-success, .call-pill-btn, .call-aux-btn, .end-call-btn, .hero-pill-action {
     position: relative;
     overflow: hidden !important;
-    isolation: isolate !important;
     border-radius: var(--radius-md);
 }
 
@@ -2777,31 +2784,6 @@ html.light-theme .vol-pct-badge {
     padding-right: 2px;
 }
 
-/* ==========================================================================
-   DYNAMIC IN-CALL HEIGHT EXTENSION
-   ========================================================================== */
-
-.app-window.is-in-call {
-    height: auto !important;
-    min-height: 800px !important;
-    max-height: calc(100vh - 24px);
-    transition: min-height 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.app-window.is-in-call .app-body {
-    height: auto !important;
-    min-height: calc(100% - 86px);
-}
-
-.app-window.is-in-call .workspace {
-    height: auto !important;
-    min-height: 0;
-}
-
-.app-window.is-in-call .tab-view-content {
-    height: auto !important;
-    min-height: 0;
-}
 
 /* ==========================================================================
    SOKRAT VOIP LOGIN SCREEN & VIEW SYSTEM
@@ -3305,9 +3287,9 @@ html.is-popout .app-window,
 .html.is-popout .app-window {
     width: 360px !important;
     max-width: calc(100vw - 32px) !important;
-    height: auto !important;
+    height: 560px !important;
+    min-height: 560px !important;
     max-height: calc(100vh - 32px) !important;
-    min-height: 520px !important;
     background: #0e0e13 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 22px !important;
@@ -3325,32 +3307,23 @@ html.is-popout .app-window,
 }
 /* ── TITLEBAR ── */
 .app-titlebar {
-    height: 32px !important;
-    min-height: 32px !important;
-    background: rgba(14,14,18,0.95) !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    background: rgba(14,14,18,0.98) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 10px !important;
-    gap: 4px !important;
+    padding: 0 12px !important;
+    gap: 6px !important;
     user-select: none !important;
     flex-shrink: 0 !important;
 }
 
 .app-titlebar-title {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.1em !important;
-    color: rgba(255,255,255,0.7) !important;
-    text-transform: uppercase !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
+    display: none !important;
 }
 
 .brand-badge {
@@ -3367,15 +3340,14 @@ html.is-popout .app-window,
 .header-status-strip {
     display: flex !important;
     align-items: center !important;
-    gap: 5px !important;
+    gap: 8px !important;
     background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
     border-radius: 999px !important;
-    padding: 0 8px !important;
-    height: 24px !important;
-    flex-shrink: 1 !important;
+    padding: 0 10px !important;
+    height: 28px !important;
+    flex: 1 !important;
     min-width: 0 !important;
-    overflow: hidden !important;
 }
 
 .status-pulse-dot {
@@ -3426,7 +3398,7 @@ html.is-popout .app-window,
 .titlebar-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 1px !important;
+    gap: 3px !important;
     flex-shrink: 0 !important;
 }
 
@@ -3436,17 +3408,27 @@ html.is-popout .app-window,
     background: none !important;
     border: none !important;
     border-radius: 6px !important;
-    color: rgba(255,255,255,0.3) !important;
+    color: rgba(255,255,255,0.45) !important;
     cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 0 !important;
-    transition: color 0.12s, background 0.12s !important;
+    transition: color 0.12s, background 0.12s, transform 0.1s !important;
 }
 .titlebar-btn:hover {
-    color: rgba(255,255,255,0.8) !important;
-    background: rgba(255,255,255,0.06) !important;
+    color: #ffffff !important;
+    background: rgba(255,255,255,0.08) !important;
+}
+.titlebar-btn:active {
+    transform: scale(0.92) !important;
+}
+.titlebar-btn.spinning svg {
+    animation: titlebarSpin 0.6s linear infinite !important;
+}
+@keyframes titlebarSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* ── SEGMENTED NAV ── */
@@ -3467,12 +3449,12 @@ html.is-popout .app-window,
 
 .sub-nav-tab {
     flex: 1 !important;
-    height: 28px !important;
+    height: 30px !important;
     background: transparent !important;
     border: none !important;
     border-radius: 9px !important;
-    color: rgba(255,255,255,0.35) !important;
-    font-size: 10.5px !important;
+    color: rgba(255,255,255,0.65) !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
     display: flex !important;
     align-items: center !important;
@@ -3490,16 +3472,16 @@ html.is-popout .app-window,
     white-space: nowrap !important;
 }
 .sub-nav-tab svg {
-    opacity: 0.5 !important;
+    opacity: 0.75 !important;
     transition: opacity 0.15s !important;
 }
 .sub-nav-tab:hover {
-    color: rgba(255,255,255,0.6) !important;
-    background: rgba(255,255,255,0.03) !important;
+    color: #ffffff !important;
+    background: rgba(255,255,255,0.06) !important;
     border-color: transparent !important;
 }
 .sub-nav-tab.active {
-    background: rgba(52,211,153,0.1) !important;
+    background: rgba(16,185,129,0.15) !important;
     color: #34d399 !important;
     font-weight: 700 !important;
     box-shadow: none !important;
@@ -3518,6 +3500,11 @@ html.is-popout .app-window,
     display: flex !important;
     flex-direction: column !important;
 }
+.workspace.hidden,
+#line1Workspace.hidden,
+#line1Workspace[style*="display: none"] {
+    display: none !important;
+}
 
 /* Center dialer content vertically in the viewport */
 #tabContentDialer.active {
@@ -3531,192 +3518,225 @@ html.is-popout .app-window,
     flex: none !important;
     height: auto !important;
 }
-.workspace-header { display: none !important; }
+.workspace-header:not(.app-titlebar) { display: none !important; }
 
 .tab-view-content {
     padding: 6px 16px 6px !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
 }
 
 .dialer-col {
     gap: 0 !important;
-    max-width: 340px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* ── DIAL INPUT ── */
 .dialer-input-box {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-    padding: 2px 2px !important;
-    height: auto !important;
-    margin-bottom: 6px !important;
-    box-shadow: none !important;
-    transition: border-color 0.12s !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 6px 10px !important;
+    height: 44px !important;
+    margin-bottom: 10px !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.15s ease !important;
     display: flex !important;
     align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 .dialer-input-box:focus-within {
-    border-color: rgba(52,211,153,0.3) !important;
-    box-shadow: none !important;
-    background: transparent !important;
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
 }
 
 .dialer-input {
-    font-size: 22px !important;
-    font-weight: 300 !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
     color: #ffffff !important;
-    letter-spacing: 0.03em !important;
+    letter-spacing: 0.04em !important;
     text-align: center !important;
     background: transparent !important;
     border: none !important;
     outline: none !important;
     width: 100% !important;
     font-variant-numeric: tabular-nums !important;
-    font-family: var(--font-main) !important;
+    font-family: var(--font-mono) !important;
 }
 .dialer-input::placeholder {
-    color: rgba(255,255,255,0.15) !important;
-    font-size: 24px !important;
-    font-weight: 300 !important;
+    color: rgba(255, 255, 255, 0.35) !important;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
 }
 
 .dial-history-dropdown-btn {
     background: none !important;
     border: none !important;
-    color: rgba(255,255,255,0.2) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
     cursor: pointer !important;
-    padding: 4px !important;
+    padding: 6px !important;
     display: flex !important;
     align-items: center !important;
     gap: 2px !important;
-    border-radius: 4px !important;
+    border-radius: 6px !important;
     flex-shrink: 0 !important;
+    transition: color 0.12s, background 0.12s !important;
 }
-.dial-history-dropdown-btn:hover { color: rgba(255,255,255,0.5) !important; }
+.dial-history-dropdown-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
 
 .clear-input-btn {
     background: none !important;
     border: none !important;
-    color: rgba(255,255,255,0.2) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
     cursor: pointer !important;
     padding: 6px !important;
     border-radius: 50% !important;
     flex-shrink: 0 !important;
     display: flex !important;
     align-items: center !important;
+    transition: color 0.12s, background 0.12s !important;
 }
-.clear-input-btn:hover { color: rgba(255,255,255,0.6) !important; }
+.clear-input-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
 
-/* ── CIRCULAR KEYPAD ── */
+/* ── PHONERLITE-STYLE RECTANGULAR KEYPAD MATRIX ── */
 .keypad-grid {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-    margin-bottom: 8px !important;
-    justify-items: center !important;
-    padding: 0 8px !important;
+    gap: 8px 10px !important;
+    margin-bottom: 12px !important;
+    justify-items: stretch !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .keypad-btn {
-    width: 58px !important;
-    height: 58px !important;
-    min-height: 0 !important;
-    background: rgba(255,255,255,0.06) !important;
-    border: none !important;
-    border-radius: 50% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
     user-select: none !important;
-    padding: 0 !important;
-    gap: 1px !important;
-    box-shadow: none !important;
-    transition: background 0.1s ease, transform 0.08s ease !important;
+    padding: 0 4px !important;
+    gap: 5px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.1s ease !important;
     position: relative !important;
     overflow: hidden !important;
-    isolation: isolate !important;
 }
 .keypad-btn::before {
     content: "" !important;
     position: absolute !important;
     inset: 0 !important;
     z-index: -1 !important;
-    border-radius: 50% !important;
-    background: rgba(255,255,255,0.12) !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
     transform: scale(0) !important;
-    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1) !important;
+    transition: transform 0.2s cubic-bezier(0.16,1,0.3,1) !important;
 }
 .keypad-btn:hover::before {
     transform: scale(1) !important;
 }
 .keypad-btn:hover {
-    border-color: transparent !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
 }
 .keypad-btn:active {
-    transform: scale(0.92) !important;
-    background: rgba(255,255,255,0.15) !important;
-    border-color: transparent !important;
+    transform: translateY(1px) !important;
+    background: rgba(255, 255, 255, 0.18) !important;
 }
 
 .keypad-digit {
-    font-size: 20px !important;
-    font-weight: 400 !important;
+    font-size: 19px !important;
+    font-weight: 600 !important;
     color: #ffffff !important;
     line-height: 1 !important;
+    display: inline-block !important;
     font-family: var(--font-main) !important;
 }
 
 .keypad-sub {
-    font-size: 7px !important;
-    font-weight: 600 !important;
-    color: rgba(255,255,255,0.35) !important;
-    letter-spacing: 0.15em !important;
-    margin-top: 2px !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
     line-height: 1 !important;
+    display: inline-block !important;
     font-family: var(--font-main) !important;
 }
 
-/* ── ACTION ROW ── */
+.keypad-util-btn .keypad-digit {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+}
+.keypad-util-btn:hover .keypad-digit {
+    color: #ffffff !important;
+}
+
+/* ── ACTION ROW / CALL BUTTON ── */
 .keypad-action-row {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 14px !important;
-    margin-bottom: 6px !important;
-    padding: 0 8px !important;
+    margin-bottom: 10px !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .call-pill-btn {
-    width: 58px !important;
-    height: 58px !important;
-    flex: none !important;
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
     background: #10b981 !important;
-    color: #fff !important;
+    color: #ffffff !important;
     border: none !important;
-    border-radius: 50% !important;
-    font-size: 0 !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 0 !important;
+    gap: 8px !important;
     cursor: pointer !important;
-    box-shadow: 0 4px 24px -4px rgba(16,185,129,0.5), 0 0 0 4px rgba(16,185,129,0.12) !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important;
     transition: all 0.15s ease !important;
     position: relative !important;
     overflow: hidden !important;
-    isolation: isolate !important;
     padding: 0 !important;
+    letter-spacing: 0.05em !important;
 }
 .call-pill-btn::before {
     content: "" !important;
     position: absolute !important;
     inset: 0 !important;
     z-index: -1 !important;
-    border-radius: 50% !important;
+    border-radius: 6px !important;
     background: #059669 !important;
     transform: scale(0) !important;
     transition: transform 0.25s cubic-bezier(0.16,1,0.3,1) !important;
@@ -3725,13 +3745,15 @@ html.is-popout .app-window,
     transform: scale(1) !important;
 }
 .call-pill-btn:hover:not(:disabled) {
-    box-shadow: 0 6px 32px -4px rgba(16,185,129,0.6), 0 0 0 6px rgba(16,185,129,0.15) !important;
-    transform: scale(1.05) !important;
+    background: #059669 !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important;
+    transform: translateY(-1px) !important;
 }
 .call-pill-btn:active:not(:disabled) {
-    transform: scale(0.93) !important;
+    transform: translateY(1px) !important;
 }
-.call-pill-btn:disabled {
+.call-pill-btn:disabled,
+.call-pill-btn[disabled] {
     background: rgba(255,255,255,0.06) !important;
     color: rgba(255,255,255,0.2) !important;
     box-shadow: none !important;
@@ -3740,12 +3762,13 @@ html.is-popout .app-window,
 }
 .call-pill-btn:disabled::before { display: none !important; }
 .call-pill-btn span {
-    display: none !important;
+    display: inline !important;
+    text-transform: uppercase !important;
 }
 .call-pill-btn svg {
     stroke: #fff !important;
-    width: 24px !important;
-    height: 24px !important;
+    width: 18px !important;
+    height: 18px !important;
     position: relative !important;
     z-index: 2 !important;
     flex-shrink: 0 !important;
@@ -3753,20 +3776,20 @@ html.is-popout .app-window,
 .call-pill-btn:disabled svg { stroke: rgba(255,255,255,0.2) !important; }
 
 .call-aux-btn {
-    width: 40px !important;
-    height: 40px !important;
-    background: rgba(255,255,255,0.06) !important;
-    border: none !important;
-    border-radius: 50% !important;
-    color: rgba(255,255,255,0.5) !important;
+    width: 36px !important;
+    height: 36px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 4px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    transition: all 0.1s ease !important;
+    transition: all 0.15s ease !important;
     padding: 0 !important;
-    gap: 3px !important;
+    gap: 2px !important;
     position: relative !important;
     overflow: hidden !important;
     isolation: isolate !important;
@@ -3776,49 +3799,88 @@ html.is-popout .app-window,
     position: absolute !important;
     inset: 0 !important;
     z-index: -1 !important;
-    border-radius: 50% !important;
-    background: rgba(255,255,255,0.1) !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
     transform: scale(0) !important;
     transition: transform 0.2s cubic-bezier(0.16,1,0.3,1) !important;
 }
 .call-aux-btn:hover::before { transform: scale(1) !important; }
-.call-aux-btn:hover { color: rgba(255,255,255,0.85) !important; }
+.call-aux-btn:hover {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.call-aux-btn:active { transform: translateY(1px) !important; }
 .call-aux-btn span {
-    font-size: 6px !important;
+    font-size: 7px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
+    letter-spacing: 0.06em !important;
     color: inherit !important;
+    line-height: 1 !important;
     position: relative !important;
     z-index: 2 !important;
 }
 
-/* ── UTILITY DOCK ── */
+/* Light Theme MicroSIP/PhonerLite Match */
+html.light-theme .keypad-grid {
+    background: transparent !important;
+}
+html.light-theme .keypad-btn {
+    background: #ffffff !important;
+    border: 1px solid #c4c4c4 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+html.light-theme .keypad-btn:hover {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+}
+html.light-theme .keypad-digit {
+    color: #000000 !important;
+}
+html.light-theme .keypad-sub,
+html.light-theme .keypad-util-btn .keypad-digit {
+    color: #6c7a89 !important;
+}
+html.light-theme .dialer-input-box {
+    background: #ffffff !important;
+    border: 1px solid #b8b8b8 !important;
+}
+
 .dialer-tool-bar {
     display: flex !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    padding: 4px 0 2px !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+    padding: 8px 0 10px !important;
     background: transparent !important;
     border: none !important;
-    border-top: 1px solid rgba(255,255,255,0.04) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
     border-radius: 0 !important;
-    margin-top: 0 !important;
+    margin-top: 2px !important;
+    box-sizing: border-box !important;
+}
+
+.tool-icon-btn {
+    flex: 1 !important;
+    width: auto !important;
+    height: 38px !important;
     box-shadow: none !important;
 }
 
 .tool-icon-btn {
-    width: 48px !important;
-    height: 34px !important;
-    background: transparent !important;
-    border: none !important;
+    width: 60px !important;
+    height: 38px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
     border-radius: 10px !important;
-    color: rgba(255,255,255,0.35) !important;
+    color: rgba(255, 255, 255, 0.65) !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 2px !important;
+    gap: 3px !important;
     cursor: pointer !important;
     transition: all 0.12s ease !important;
     padding: 0 !important;
@@ -3831,7 +3893,7 @@ html.is-popout .app-window,
     position: absolute !important;
     inset: 0 !important;
     z-index: -1 !important;
-    background: rgba(255,255,255,0.06) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
     border-radius: 10px !important;
     transform: scale(0) !important;
     transition: transform 0.2s cubic-bezier(0.16,1,0.3,1) !important;
@@ -3840,10 +3902,15 @@ html.is-popout .app-window,
 .tool-icon-btn:focus-visible::before {
     transform: scale(1) !important;
 }
+.tool-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+}
 .tool-icon-btn .tool-label {
-    font-size: 8px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.06em !important;
+    font-size: 8.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
     line-height: 1 !important;
     color: inherit !important;
@@ -4012,12 +4079,14 @@ select, option, optgroup {
 .header-status-strip {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 8px !important;
     background: rgba(255, 255, 255, 0.04) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 999px !important;
-    padding: 2px 8px !important;
-    height: 26px !important;
+    padding: 0 10px !important;
+    height: 28px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
     max-width: none !important;
     overflow: visible !important;
 }
@@ -4071,54 +4140,74 @@ select.input-text option {
     padding: 6px 10px !important;
 }
 
-/* ── IN-CALL / RECEIVING CALL HERO ── */
 #activeCallContainer {
-    max-width: 440px !important;
-    margin: 0 auto !important;
     width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 !important;
+    display: flex;
+    flex-direction: column !important;
+    padding: 6px 10px !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    padding: 10px 16px 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    animation: activeCallFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes activeCallFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 .active-call-hero {
-    background: #111116 !important;
+    background: rgba(255, 255, 255, 0.03) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
-    padding: 14px 16px !important;
-    margin: 0 auto 12px auto !important;
-    max-width: 440px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    padding: 10px 14px !important;
+    margin: 0 !important;
     width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     box-sizing: border-box !important;
     transition: all 0.2s ease !important;
 }
 
 .active-call-hero.ringing {
     border-color: rgba(16, 185, 129, 0.5) !important;
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.25), 0 0 0 1px rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.25) !important;
 }
 
 .hero-contact-row {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 12px !important;
+    gap: 10px !important;
 }
 
 .hero-avatar-info {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 10px !important;
 }
 
 .hero-avatar {
-    width: 44px !important;
-    height: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
     border-radius: 50% !important;
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
     border: 1px solid rgba(16, 185, 129, 0.35) !important;
     color: #34d399 !important;
-    font-size: 16px !important;
+    font-size: 14px !important;
     font-weight: 800 !important;
     display: flex !important;
     align-items: center !important;
@@ -4144,8 +4233,8 @@ select.input-text option {
     background: rgba(255, 255, 255, 0.03) !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
     border-radius: 12px !important;
-    padding: 8px 12px !important;
-    margin: 10px 0 !important;
+    padding: 6px 10px !important;
+    margin: 6px 0 !important;
     box-shadow: none !important;
 }
 
@@ -4158,13 +4247,124 @@ select.input-text option {
 /* Action Buttons Row */
 .hero-actions-row {
     display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(3, 1fr) !important;
     gap: 8px !important;
     margin-top: 4px !important;
+    width: 100% !important;
 }
 
+/* Incoming Call 3-Column Action Row (Answer, Transfer, Decline) */
+.hero-actions-row--incoming {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+.hero-actions-row--incoming .btn-transfer {
+    background: rgba(56, 189, 248, 0.15) !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    color: #38bdf8 !important;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2) !important;
+}
+.hero-actions-row--incoming .btn-transfer:hover {
+    background: #38bdf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4) !important;
+}
+
+.hero-hangup-row {
+    width: 100% !important;
+    margin-top: 4px !important;
+}
+.hero-hangup-row .end-call-btn {
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    background: #ef4444 !important;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+}
+.hero-hangup-row .end-call-btn:hover {
+    background: #dc2626 !important;
+    box-shadow: 0 6px 22px rgba(239, 68, 68, 0.55) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── IN-CALL DTMF KEYPAD ── */
+.in-call-dtmf-section {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 12px !important;
+    padding: 6px 8px !important;
+    margin: 2px 0 !important;
+}
+
+.in-call-dtmf-header {
+    display: none !important;
+}
+
+.dtmf-input-display {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    margin-bottom: 5px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    line-height: 18px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #34d399 !important;
+    letter-spacing: 0.12em !important;
+    text-align: right !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    direction: ltr !important;
+}
+.dtmf-input-display:empty {
+    background: rgba(0, 0, 0, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.in-call-dtmf-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px 5px !important;
+}
+
+.dtmf-key-btn {
+    height: 28px !important;
+    min-height: 28px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 4px !important;
+    color: #ffffff !important;
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.1s ease !important;
+}
+.dtmf-key-btn:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+.dtmf-key-btn:active {
+    transform: translateY(1px) !important;
+    background: rgba(16, 185, 129, 0.3) !important;
+    border-color: #10b981 !important;
+}
 .end-call-btn {
-    height: 44px !important;
+    height: 38px !important;
     border-radius: 12px !important;
     background: #ef4444 !important;
     color: #ffffff !important;
@@ -4200,7 +4400,7 @@ select.input-text option {
 }
 
 .hero-pill-action {
-    height: 44px !important;
+    height: 38px !important;
     border-radius: 12px !important;
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
@@ -4334,7 +4534,13 @@ select.input-text option {
     max-width: 440px !important;
     margin: 0 auto !important;
     width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
 }
 
 .contacts-list,
@@ -4344,8 +4550,15 @@ select.input-text option {
     gap: 6px !important;
     max-width: 440px !important;
     margin: 0 auto !important;
+    width: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 4px !important;
+    padding-bottom: 8px !important;
+    scrollbar-width: thin !important;
 }
-
 .recent-calls-title {
     font-size: 11px !important;
     font-weight: 800 !important;
@@ -4357,13 +4570,15 @@ select.input-text option {
 .recent-card {
     background: rgba(255, 255, 255, 0.03) !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-radius: 20px !important;
-    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    padding: 8px 10px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 10px !important;
+    gap: 8px !important;
     min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     transition: all 0.15s ease !important;
 }
 .recent-card:hover {
@@ -4375,18 +4590,29 @@ select.input-text option {
 .recent-left {
     display: flex !important;
     align-items: center !important;
-    gap: 10px !important;
+    gap: 8px !important;
     min-width: 0 !important;
     flex: 1 1 auto !important;
     overflow: hidden !important;
 }
 
+.contact-drag-handle {
+    width: 8px !important;
+    flex-shrink: 0 !important;
+    cursor: grab !important;
+    opacity: 0.5 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
 .recent-avatar {
-    width: 36px !important;
-    height: 36px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
     border-radius: 50% !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     font-size: 13px !important;
@@ -4399,21 +4625,34 @@ select.input-text option {
 .recent-info {
     display: flex !important;
     flex-direction: column !important;
-    gap: 3px !important;
+    gap: 2px !important;
     min-width: 0 !important;
     flex: 1 1 auto !important;
     overflow: hidden !important;
 }
 
 .recent-name {
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
     color: #ffffff !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
 }
+
+.contact-phone-number {
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #cbd5e1 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
 
 .recent-dir {
     display: inline-flex !important;
@@ -4452,7 +4691,7 @@ select.input-text option {
 .recent-right {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 3px !important;
     flex-shrink: 0 !important;
     margin-left: auto !important;
 }
@@ -4467,25 +4706,25 @@ select.input-text option {
 }
 
 .recent-call-btn {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    background: rgba(16, 185, 129, 0.12) !important;
-    border: 1px solid rgba(16, 185, 129, 0.25) !important;
-    color: #34d399 !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 6px !important;
+    padding: 0 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    transition: all 0.15s ease !important;
-    padding: 0 !important;
+    border: 1px solid transparent !important;
+    transition: all 0.12s ease !important;
     flex-shrink: 0 !important;
 }
+.recent-call-btn svg {
+    width: 13px !important;
+    height: 13px !important;
+}
 .recent-call-btn:hover {
-    background: #10b981 !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4) !important;
-    transform: scale(1.06) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* Wide screen centering */
@@ -4496,8 +4735,11 @@ select.input-text option {
     margin: 0 auto !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
 }
-
 /* ── INCOMING CALL 2-COLUMN ACTION ROW (Fixes 4-col half-empty card) ── */
 .hero-actions-row--incoming {
     display: grid !important;
@@ -4593,36 +4835,35 @@ select.input-text option {
 
 .custom-ext-popover {
     position: absolute !important;
-    top: calc(100% + 6px) !important;
+    top: calc(100% + 8px) !important;
     left: 0 !important;
-    min-width: 180px !important;
-    background: #111116 !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    min-width: 190px !important;
+    background: #18181b !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 12px !important;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
-    backdrop-filter: blur(20px) !important;
-    z-index: 1000 !important;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    z-index: 9999 !important;
     overflow: hidden !important;
     animation: dialDropdownFade 0.12s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .custom-ext-popover-header {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    padding: 6px 10px !important;
-    font-size: 9px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.1em !important;
-    color: rgba(255, 255, 255, 0.4) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding: 8px 12px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    color: rgba(255, 255, 255, 0.6) !important;
     text-transform: uppercase !important;
 }
 
 .custom-ext-list {
-    padding: 4px !important;
+    padding: 6px !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 2px !important;
-    max-height: 200px !important;
+    gap: 3px !important;
+    max-height: 220px !important;
     overflow-y: auto !important;
 }
 
@@ -4894,6 +5135,7 @@ body.is-embedded .keypad-btn {
         
         <!-- Unified Modern Header (Single Aligned Row) -->
         <div class="app-titlebar">
+            <div class="workspace-header" style="display:none !important;"></div>
             <div class="app-titlebar-title">
                 <span>SOKRAT</span>
                 <span class="brand-badge">VOICE</span>
@@ -4908,43 +5150,38 @@ body.is-embedded .keypad-btn {
                         </option>
                     <% }); %>
                 </select>
-                <% if (typeof isEmbedded !== 'undefined' && isEmbedded) { %>
-                <!-- Static Assigned Extension Badge (Hard-assigned to CRM user) -->
-                <div class="assigned-ext-badge" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); font-family: monospace; font-size: 11px; font-weight: 700; color: #ffffff;">
+                <!-- Current Active Extension Badge (Static Hardware Label - No Dropdown) -->
+                <div class="assigned-ext-badge" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #ffffff;">
                     <span id="customExtTriggerLabel">Ext <%= typeof embedPreset !== 'undefined' && embedPreset ? embedPreset.extension : (typeof extensions !== 'undefined' && extensions.length ? extensions[0].extension : '150') %></span>
                 </div>
-                <button type="button" id="connectBtn" class="compact-connect-btn" style="display: none !important;"></button>
-                <% } else { %>
-                <!-- Custom Stylized Extension Trigger & Popover -->
-                <div class="custom-ext-dropdown-container">
-                    <button type="button" id="customExtTrigger" class="custom-ext-trigger" onclick="window.softphoneUi.toggleCustomExtDropdown(event)" title="Select Extension">
-                        <span id="customExtTriggerLabel">Ext 150</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <div id="customExtPopover" class="custom-ext-popover" style="display: none;">
-                        <div class="custom-ext-popover-header">
-                            <span><%= isRtl ? 'التحويلات المتاحة' : 'AVAILABLE EXTENSIONS' %></span>
-                        </div>
-                        <div id="customExtList" class="custom-ext-list"></div>
-                    </div>
-                </div>
-                <button type="button" id="connectBtn" class="compact-connect-btn">
-                    <%= isRtl ? 'اتصال' : 'Connect' %>
+                <% if (typeof isEmbedded === 'undefined' || !isEmbedded) { %>
+                <button type="button" id="connectBtn" class="compact-connect-btn" title="<%= isRtl ? 'تسجيل الخروج والتبديل لتحويلة أخرى' : 'Sign out to switch extension' %>">
+                    <%= isRtl ? 'خروج' : 'Sign Out' %>
                 </button>
+                <% } else { %>
+                <button type="button" id="connectBtn" class="compact-connect-btn" style="display: none !important;"></button>
                 <% } %>
                 <div id="statusBadge" style="display: none;"><span id="statusText"><%= isRtl ? 'غير متصل' : 'Offline' %></span></div>
             </div>
 
             <div class="titlebar-actions">
+                <!-- 1. Reload Extension Connection to Asterisk -->
+                <button type="button" class="titlebar-btn" id="titlebarReloadBtn" onclick="window.softphoneUi.reloadConnection()" title="<%= isRtl ? 'إعادة تحديث الاتصال بالسنترال' : 'Reload Connection' %>">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                </button>
+                <!-- 2. Open in Persistent Popout Window -->
+                <button type="button" class="titlebar-btn" id="titlebarPopoutBtn" onclick="window.softphoneUi.openPersistentWindow()" title="<%= isRtl ? 'فتح في نافذة مستقلة دائمة' : 'Open in Persistent Window' %>">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </button>
                 <% if (typeof isEmbedded === 'undefined' || !isEmbedded) { %>
                 <button type="button" class="titlebar-btn" onclick="window.softphoneUi.openPresetModal()" title="<%= isRtl ? 'إدارة الحسابات' : 'Accounts' %>">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </button>
                 <% } %>
                 <button type="button" class="titlebar-btn" onclick="window.softphoneUi.openAudioModal()" title="<%= isRtl ? 'إعدادات الصوت' : 'Audio Settings' %>">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
                 </button>
-                <button type="button" onclick="window.softphoneUi.toggleTheme()" class="titlebar-btn" title="Toggle Light/Dark Theme">
+                <button type="button" onclick="window.softphoneUi.toggleTheme()" class="titlebar-btn" title="<%= isRtl ? 'تبديل المظهر' : 'Toggle Theme' %>">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 </button>
             </div>
@@ -4982,12 +5219,9 @@ body.is-embedded .keypad-btn {
                     </button>
                 </div>
 
-                <!-- Active Calls Hero Display Container (Pinned & Always Visible in Calls) -->
-                <div id="activeCallContainer" style="display: none; flex-direction: column; padding: 10px 14px 0;"></div>
-
                 <!-- Tab View: Dialer -->
                 <div id="tabContentDialer" class="tab-view-content active">
-                    <div class="dialer-col" style="max-width: 480px; margin: 0 auto;">
+                    <div class="dialer-col" style="width: 100%; max-width: 100%; margin: 0 auto;">
                         
 
                         <!-- LCD Dial Display Box -->
@@ -4996,7 +5230,7 @@ body.is-embedded .keypad-btn {
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             </button>
-                            <input type="text" id="dialInput" placeholder="1-555-0199" class="dialer-input" autocomplete="off">
+                            <input type="text" id="dialInput" placeholder="<%= isRtl ? 'أدخل الرقم للاتصال...' : 'Enter number...' %>" class="dialer-input" autocomplete="off">
                             <button type="button" class="clear-input-btn" onclick="document.getElementById('dialInput').value = document.getElementById('dialInput').value.slice(0, -1)" title="Backspace">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
                             </button>
@@ -5011,9 +5245,9 @@ body.is-embedded .keypad-btn {
                             </div>
                         </div>
 
-                        <!-- 3x4 Modern Squircle Keypad Grid with DTMF Labels -->
+                        <!-- 3x5 PhonerLite-Style Rectangular Keypad Grid with Inline Labels -->
                         <div class="keypad-grid" id="keypadGrid">
-                            <button type="button" class="keypad-btn" data-digit="1"><span class="keypad-digit">1</span><span class="keypad-sub"></span></button>
+                            <button type="button" class="keypad-btn" data-digit="1"><span class="keypad-digit">1</span></button>
                             <button type="button" class="keypad-btn" data-digit="2"><span class="keypad-digit">2</span><span class="keypad-sub">ABC</span></button>
                             <button type="button" class="keypad-btn" data-digit="3"><span class="keypad-digit">3</span><span class="keypad-sub">DEF</span></button>
                             <button type="button" class="keypad-btn" data-digit="4"><span class="keypad-digit">4</span><span class="keypad-sub">GHI</span></button>
@@ -5022,27 +5256,26 @@ body.is-embedded .keypad-btn {
                             <button type="button" class="keypad-btn" data-digit="7"><span class="keypad-digit">7</span><span class="keypad-sub">PQRS</span></button>
                             <button type="button" class="keypad-btn" data-digit="8"><span class="keypad-digit">8</span><span class="keypad-sub">TUV</span></button>
                             <button type="button" class="keypad-btn" data-digit="9"><span class="keypad-digit">9</span><span class="keypad-sub">WXYZ</span></button>
-                            <button type="button" class="keypad-btn" data-digit="*"><span class="keypad-digit">*</span><span class="keypad-sub"></span></button>
-                            <button type="button" class="keypad-btn" data-digit="0"><span class="keypad-digit">0</span><span class="keypad-sub">+</span></button>
-                            <button type="button" class="keypad-btn" data-digit="#"><span class="keypad-digit">#</span><span class="keypad-sub"></span></button>
+                            <button type="button" class="keypad-btn" data-digit="*"><span class="keypad-digit">*</span></button>
+                            <button type="button" class="keypad-btn" data-digit="0"><span class="keypad-digit">0</span></button>
+                            <button type="button" class="keypad-btn" data-digit="#"><span class="keypad-digit">#</span></button>
+                            <button type="button" class="keypad-btn keypad-util-btn" id="keypadBtnRedial" onclick="window.softphoneUi.redialLastNumber()" title="<%= isRtl ? 'إعادة طلب' : 'Redial' %>"><span class="keypad-digit">R</span></button>
+                            <button type="button" class="keypad-btn keypad-util-btn" data-digit="+" title="Plus"><span class="keypad-digit">+</span></button>
+                            <button type="button" class="keypad-btn keypad-util-btn" id="keypadBtnClear" onclick="document.getElementById('dialInput').value=''" title="<%= isRtl ? 'مسح' : 'Clear' %>"><span class="keypad-digit">C</span></button>
                         </div>
 
-                        <!-- Action Buttons: Call & Clear -->
+                        <!-- Action Buttons: Primary Call Bar -->
                         <div class="keypad-action-row">
-                            <button type="button" id="callBtn" class="call-pill-btn" title="Place Call">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <button type="button" id="callBtn" class="call-pill-btn" title="<%= isRtl ? 'إجراء مكالمة' : 'Place Call' %>">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                                 <span><%= isRtl ? 'اتصال' : 'Call' %></span>
-                            </button>
-                            <button type="button" class="call-aux-btn" onclick="document.getElementById('dialInput').value=''" title="Clear">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                <span><%= isRtl ? 'مسح' : 'Clear' %></span>
                             </button>
                         </div>
 
                                                 <!-- Live In-Call & Toggle Tools Bar (With Sokrat Hardware Controls & State Glows) -->
                         <div class="dialer-tool-bar">
                             <button type="button" class="tool-icon-btn" id="toolBtnSpeakerMute" onclick="window.softphoneUi.toggleSpeakerMute()" title="<%= isRtl ? 'كتم صوت السماعة' : 'Mute Speaker Audio' %>">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
                                 <span class="tool-label"><%= isRtl ? 'سماعة' : 'Speaker' %></span>
                             </button>
                             <button type="button" class="tool-icon-btn" id="toolBtnDnd" onclick="window.softphoneUi.toggleDndButton()" title="<%= isRtl ? 'وضع عدم الإزعاج' : 'Do Not Disturb (DND)' %>">
@@ -5083,9 +5316,11 @@ body.is-embedded .keypad-btn {
                     </div>
                 </div>
             </div>
+
+            <!-- In-Call Takeover Container (Takes over the phone UI when receiving or active) -->
+            <div id="activeCallContainer" class="active-call-takeover" style="display: none;"></div>
         </div>
     </div>
-
         <!-- MODAL: MANAGE ACCOUNTS (SAVED ROSTER & ADD NEW) -->
     <div id="presetModal" class="modal-backdrop hidden">
         <div class="modal-card" style="max-width: 480px;">
@@ -6064,6 +6299,11 @@ body.is-embedded .keypad-btn {
             if (this.regState === 'AUTH_FAILED' || !this.activePreset) return;
 
             this.reconnectAttempt++;
+            if (this.reconnectAttempt > this.options.maxReconnectAttempts) {
+                this.setRegState('DISCONNECTED');
+                this.emit('reconnectExhausted', { attempts: this.reconnectAttempt - 1 });
+                return;
+            }
             const backoffSec = Math.min(30, Math.pow(2, Math.min(5, this.reconnectAttempt)));
             this.emit('retryCountdown', { seconds: backoffSec, attempt: this.reconnectAttempt });
 
@@ -6197,12 +6437,38 @@ body.is-embedded .keypad-btn {
                         this.stopRingback();
                         this.startSpeakerVuMeter(stream);
                     }
+                    if (event.track && typeof event.track.addEventListener === 'function') {
+                        event.track.addEventListener('ended', () => {
+                            console.log('[SokratCore] Remote audio track ended');
+                            if (callEntry && callEntry.status === 'active') {
+                                this.handleCallEnd(callEntry, 'answered');
+                            }
+                        });
+                    }
                 });
                 pc.addEventListener('iceconnectionstatechange', () => {
                     console.log('[SokratCore] ICE state:', pc.iceConnectionState);
+                    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+                        setTimeout(() => {
+                            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+                                if (callEntry && callEntry.status === 'active') {
+                                    console.log('[SokratCore] Remote ICE connection dropped, ending call');
+                                    this.handleCallEnd(callEntry, 'answered');
+                                }
+                            }
+                        }, 1500);
+                    }
+                });
+                pc.addEventListener('connectionstatechange', () => {
+                    console.log('[SokratCore] Connection state:', pc.connectionState);
+                    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                        if (callEntry && callEntry.status === 'active') {
+                            console.log('[SokratCore] PeerConnection disconnected, ending call');
+                            this.handleCallEnd(callEntry, 'answered');
+                        }
+                    }
                 });
             };
-
             // For outgoing calls, session.connection already exists by the time
             // handleNewRTCSession fires (JsSIP creates it during ua.call()).
             // The 'peerconnection' event was already emitted and missed.
@@ -6250,8 +6516,8 @@ body.is-embedded .keypad-btn {
                     this.remoteAudioEl.play().catch(() => {});
                     this.startSpeakerVuMeter(remoteStream);
                 }
-
                 this.startQualityMetricsPoller(session);
+                this.startActiveCallChannelPoller(callEntry);
                 this.checkRecordingStatus(callEntry);
                 this.emit('callAnswered', callEntry);
             });
@@ -6315,6 +6581,7 @@ body.is-embedded .keypad-btn {
             this.stopRingtone();
             this.stopRingback();
             this.stopTrunkPoller();
+            this.stopActiveCallChannelPoller();
             this.stopQualityMetricsPoller();
             if (callEntry.progressTimer) {
                 clearTimeout(callEntry.progressTimer);
@@ -6403,6 +6670,46 @@ body.is-embedded .keypad-btn {
             if (this._trunkPoller) {
                 clearInterval(this._trunkPoller);
                 this._trunkPoller = null;
+            }
+        }
+
+        startActiveCallChannelPoller(callEntry) {
+            this.stopActiveCallChannelPoller();
+            const prefix = (typeof window !== 'undefined' && typeof window.location?.pathname === 'string' && window.location.pathname.startsWith('/phone')) ? '/phone/' : '/';
+            const ext = (this.activePreset && this.activePreset.extension) ? this.activePreset.extension : '';
+            const apiUrl = `${prefix}api/trunk-call-state${ext ? '?ext=' + encodeURIComponent(ext) : ''}`;
+
+            let inactiveCount = 0;
+            this._activeCallPoller = setInterval(async () => {
+                if (!callEntry || callEntry.status !== 'active') {
+                    this.stopActiveCallChannelPoller();
+                    return;
+                }
+                try {
+                    const resp = await fetch(apiUrl);
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    if (data && data.success !== false && data.callerActive === false) {
+                        inactiveCount++;
+                        if (inactiveCount >= 4) {
+                            console.log('[SokratCore] Asterisk confirms channel no longer active on PBX, terminating session');
+                            this.stopActiveCallChannelPoller();
+                            try { callEntry.session.terminate(); } catch (_) {}
+                            this.handleCallEnd(callEntry, 'answered');
+                        }
+                    } else {
+                        inactiveCount = 0;
+                    }
+                } catch (err) {
+                    console.warn('[ActiveCallPoller] poll error:', err?.message);
+                }
+            }, 2000);
+        }
+
+        stopActiveCallChannelPoller() {
+            if (this._activeCallPoller) {
+                clearInterval(this._activeCallPoller);
+                this._activeCallPoller = null;
             }
         }
 
@@ -6582,11 +6889,31 @@ body.is-embedded .keypad-btn {
             const isAr = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'ar');
             const transferredMsg = isAr ? `تم التحويل إلى ${target}` : `Transferred to ${target}`;
 
+            // If call is still ringing (incoming, not yet answered):
+            if (!callEntry.answerTime && callEntry.direction === 'incoming') {
+                try {
+                    callEntry.session.terminate({
+                        status_code: 302,
+                        reason_phrase: 'Moved Temporarily',
+                        extraHeaders: [`Contact: <${targetUri}>`]
+                    });
+                    this.emit('toast', { type: 'success', message: isAr ? `تم تحويل المكالمة الواردة إلى ${target}` : `Transferred ringing call to ${target}` });
+                    this.handleCallEnd(callEntry, 'transferred');
+                    return;
+                } catch (deflectErr) {
+                    console.warn('[SokratCore] Deflect failed, answering and transferring:', deflectErr);
+                    this.answerCall(callId);
+                    setTimeout(() => {
+                        this.blindTransfer(callId, targetNumber);
+                    }, 350);
+                    return;
+                }
+            }
+
             const cleanupAndNotify = () => {
                 this.emit('toast', { type: 'success', message: transferredMsg });
                 this.handleCallEnd(callEntry, 'transferred');
             };
-
             try {
                 callEntry.session.refer(targetUri, {
                     extraHeaders: [
@@ -6816,6 +7143,7 @@ body.is-embedded .keypad-btn {
         dnd: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
         autoAnswer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
         headphones: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
+        speaker: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
         users: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
         voicemail: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="4"/><circle cx="18" cy="12" r="4"/><line x1="6" y1="16" x2="18" y2="16"/></svg>',
         settings: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
@@ -6841,7 +7169,7 @@ body.is-embedded .keypad-btn {
             connect: 'اتصال',
             disconnect: 'قطع',
             cancel: 'إلغاء',
-            dialPlaceholder: '1-555-0199',
+            dialPlaceholder: 'أدخل الرقم للاتصال...',
             call: 'اتصال',
             answer: 'رد',
             decline: 'رفض',
@@ -6891,7 +7219,7 @@ body.is-embedded .keypad-btn {
             connect: 'Connect',
             disconnect: 'Disconnect',
             cancel: 'Cancel',
-            dialPlaceholder: '1-555-0199',
+            dialPlaceholder: 'Enter number...',
             call: 'Call',
             answer: 'Answer',
             decline: 'Decline',
@@ -7130,8 +7458,10 @@ body.is-embedded .keypad-btn {
         }
 
         initVolumeControls() {
-            const savedMicVol = Number(localStorage.getItem('sokrat_mic_volume')) || 100;
-            const savedSpkVol = Number(localStorage.getItem('sokrat_speaker_volume')) || 100;
+            const savedMic = localStorage.getItem('sokrat_mic_volume');
+            const savedSpk = localStorage.getItem('sokrat_speaker_volume');
+            const savedMicVol = (savedMic !== null && !isNaN(Number(savedMic))) ? Number(savedMic) : 100;
+            const savedSpkVol = (savedSpk !== null && !isNaN(Number(savedSpk))) ? Number(savedSpk) : 100;
 
             this.core.setMicVolume(savedMicVol);
             this.core.setSpeakerVolume(savedSpkVol);
@@ -7178,10 +7508,12 @@ body.is-embedded .keypad-btn {
 
         refreshSegmentedVolumeDisplay(container, micVol, spkVol) {
             const NUM_SEGMENTS = 12;
-            const micActiveCount = Math.round(((micVol !== undefined ? micVol : (this.core.micVolume || 100)) / 100) * NUM_SEGMENTS);
-            const spkActiveCount = Math.round(((spkVol !== undefined ? spkVol : (this.core.speakerVolume || 100)) / 100) * NUM_SEGMENTS);
-            const actualMic = micVol !== undefined ? micVol : (this.core.micVolume || 100);
-            const actualSpk = spkVol !== undefined ? spkVol : (this.core.speakerVolume || 100);
+            const micVal = (micVol !== undefined) ? micVol : (this.core.micVolume ?? 100);
+            const spkVal = (spkVol !== undefined) ? spkVol : (this.core.speakerVolume ?? 100);
+            const micActiveCount = Math.round((micVal / 100) * NUM_SEGMENTS);
+            const spkActiveCount = Math.round((spkVal / 100) * NUM_SEGMENTS);
+            const actualMic = micVal;
+            const actualSpk = spkVal;
 
             const root = container || document;
             const micTracks = root.querySelectorAll('.mic-vol .vol-segments-track');
@@ -7208,7 +7540,7 @@ body.is-embedded .keypad-btn {
         }
 
         syncAllVolumeDisplays() {
-            this.refreshSegmentedVolumeDisplay(document, this.core.micVolume || 100, this.core.speakerVolume || 100);
+            this.refreshSegmentedVolumeDisplay(document, this.core.micVolume ?? 100, this.core.speakerVolume ?? 100);
         }
 
         updateSpectrumBars(containerSelector, bins) {
@@ -7294,18 +7626,18 @@ body.is-embedded .keypad-btn {
             const micPctBadge = document.createElement('div');
             micPctBadge.className = 'vol-pct-badge';
             micPctBadge.id = `${line}MicPct_${call.id}`;
-            micPctBadge.textContent = `${this.core.micVolume || 100}%`;
+            micPctBadge.textContent = `${this.core.micVolume ?? 100}%`;
             micVolCtrl.appendChild(micPctBadge);
 
             micMinusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.micVolume || 100;
+                const cur = this.core.micVolume ?? 100;
                 this.updateMicVolume(Math.max(0, cur - 10));
             });
 
             micPlusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.micVolume || 100;
+                const cur = this.core.micVolume ?? 100;
                 this.updateMicVolume(Math.min(100, cur + 10));
             });
 
@@ -7373,25 +7705,25 @@ body.is-embedded .keypad-btn {
             const spkPctBadge = document.createElement('div');
             spkPctBadge.className = 'vol-pct-badge';
             spkPctBadge.id = `${line}SpkPct_${call.id}`;
-            spkPctBadge.textContent = `${this.core.speakerVolume || 100}%`;
+            spkPctBadge.textContent = `${this.core.speakerVolume ?? 100}%`;
             spkVolCtrl.appendChild(spkPctBadge);
 
             spkMinusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.speakerVolume || 100;
+                const cur = this.core.speakerVolume ?? 100;
                 this.updateSpeakerVolume(Math.max(0, cur - 10));
             });
 
             spkPlusBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const cur = this.core.speakerVolume || 100;
+                const cur = this.core.speakerVolume ?? 100;
                 this.updateSpeakerVolume(Math.min(100, cur + 10));
             });
 
             spkChan.appendChild(spkVolCtrl);
             deck.appendChild(spkChan);
 
-            this.refreshSegmentedVolumeDisplay(deck, this.core.micVolume || 100, this.core.speakerVolume || 100);
+            this.refreshSegmentedVolumeDisplay(deck, this.core.micVolume ?? 100, this.core.speakerVolume ?? 100);
 
             return deck;
         }
@@ -7764,6 +8096,9 @@ body.is-embedded .keypad-btn {
                     mainAppWindow.style.setProperty('display', 'none', 'important');
                     mainAppWindow.classList.add('hidden');
                 }
+                const workspace = document.getElementById('line1Workspace');
+                if (workspace) workspace.style.display = '';
+                if (this.dom.activeCallContainer) this.dom.activeCallContainer.style.display = 'none';
                 const submitBtn = document.getElementById('loginSubmitBtn');
                 if (submitBtn) {
                     submitBtn.disabled = false;
@@ -7863,7 +8198,7 @@ body.is-embedded .keypad-btn {
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                             </button>
-                            <input type="text" id="line2DialInput" placeholder="1-555-0199" class="dialer-input" autocomplete="off">
+                            <input type="text" id="line2DialInput" placeholder="${t.dialPlaceholder}" class="dialer-input" autocomplete="off">
                             <button type="button" class="clear-input-btn" id="line2BackspaceBtn" title="Backspace">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
                             </button>
@@ -7894,7 +8229,7 @@ body.is-embedded .keypad-btn {
                         <!-- Line 2 Live In-Call & Toggle Tools Bar -->
                         <div class="dialer-tool-bar">
                             <button type="button" class="tool-icon-btn" id="line2ToolBtnSpeakerMute" title="${t.speaker}">
-                                ${SVG_ICONS.headphones}
+                                ${SVG_ICONS.speaker}
                                 <span class="tool-label">${t.speaker}</span>
                             </button>
                             <button type="button" class="tool-icon-btn" id="line2ToolBtnDnd" title="${t.dnd}">
@@ -8319,8 +8654,8 @@ body.is-embedded .keypad-btn {
                     <div class="recent-left">
                         <div class="recent-avatar">${(c.name || 'C').charAt(0).toUpperCase()}</div>
                         <div class="recent-info">
-                            <div class="recent-name">${c.name || c.number}</div>
-                            <div class="recent-dir font-mono" style="color:var(--text-muted);">${c.number}</div>
+                            <div class="recent-name" title="${c.name || c.number}">${c.name || c.number}</div>
+                            <div class="contact-phone-number">${c.number}</div>
                         </div>
                     </div>
                     <div class="recent-right">
@@ -8541,74 +8876,22 @@ body.is-embedded .keypad-btn {
         }
 
         renderCustomExtDropdown(presets = null) {
-            if (!presets) presets = this.getPresets();
-            const listEl = document.getElementById('customExtList');
-            const triggerLabel = document.getElementById('customExtTriggerLabel');
-            if (!listEl) return;
-            listEl.textContent = '';
-
-            const currentVal = this.dom.presetSelect ? this.dom.presetSelect.value : (presets[0] ? presets[0].id : '');
-            let selectedPreset = presets.find(p => p.id === currentVal) || presets[0];
-
-            if (triggerLabel && selectedPreset) {
-                triggerLabel.textContent = selectedPreset.label || `Ext ${selectedPreset.extension}`;
-            }
-
-            presets.forEach(p => {
-                const item = document.createElement('div');
-                item.className = `custom-ext-item ${p.id === currentVal ? 'active' : ''}`;
-                item.dataset.extId = p.id;
-
-                const dot = document.createElement('span');
-                dot.className = 'custom-ext-item-dot';
-
-                const textSpan = document.createElement('span');
-                textSpan.className = 'custom-ext-item-label';
-                textSpan.textContent = p.label || `Ext ${p.extension}`;
-
-                item.appendChild(dot);
-                item.appendChild(textSpan);
-
-                item.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (this.dom.presetSelect) {
-                        this.dom.presetSelect.value = p.id;
-                        this.dom.presetSelect.dispatchEvent(new Event('change'));
-                    }
-                    if (triggerLabel) {
-                        triggerLabel.textContent = p.label || `Ext ${p.extension}`;
-                    }
-                    this.closeCustomExtDropdown();
-                });
-
-                listEl.appendChild(item);
-            });
+            this.syncCustomExtTrigger();
         }
 
         toggleCustomExtDropdown(e) {
             if (e) e.stopPropagation();
-            const popover = document.getElementById('customExtPopover');
-            if (!popover) return;
-            const isVisible = popover.style.display !== 'none';
-            if (isVisible) {
-                this.closeCustomExtDropdown();
-            } else {
-                this.renderCustomExtDropdown();
-                popover.style.display = 'block';
-            }
         }
 
         closeCustomExtDropdown() {
-            const popover = document.getElementById('customExtPopover');
-            if (popover) popover.style.display = 'none';
         }
 
         syncCustomExtTrigger() {
             const triggerLabel = document.getElementById('customExtTriggerLabel');
-            if (!triggerLabel || !this.dom.presetSelect) return;
-            const selectedOpt = this.dom.presetSelect.selectedOptions ? this.dom.presetSelect.selectedOptions[0] : null;
-            if (selectedOpt) {
-                triggerLabel.textContent = selectedOpt.textContent.trim();
+            if (!triggerLabel) return;
+            const preset = (this.core && this.core.activePreset) || this.getSelectedPreset();
+            if (preset) {
+                triggerLabel.textContent = preset.label || `Ext ${preset.extension}`;
             }
         }
 
@@ -8882,9 +9165,7 @@ body.is-embedded .keypad-btn {
                     <span>${this.currentLang === 'ar' ? 'تسجيل الدخول والاتصال بالتحويلة ↗' : `1-Click Connect to Ext ${p.extension} ↗`}</span>`;
 
                 quickBtn.onclick = async () => {
-                    this.switchModalTab('saved');
-            this.renderModalSavedAccounts();
-            this.showToast('Account saved successfully', 'success');
+                    this.closePresetModal();
                     // Select in topbar
                     if (this.dom.presetSelect) {
                         this.dom.presetSelect.value = p.id;
@@ -8900,8 +9181,7 @@ body.is-embedded .keypad-btn {
                         } catch (err) {
                             this.showToast(err.message, 'error');
                         }
-                    } else if (this.dom.passwordInput) {
-                        this.dom.passwordInput.focus();
+                    } else {
                         this.showToast(`Enter password for Ext ${p.extension}`, 'warning');
                     }
                 };
@@ -9077,6 +9357,7 @@ body.is-embedded .keypad-btn {
             });
             this.core.on('registered', () => {
                 this.updateViewMode('console');
+                this.syncCustomExtTrigger();
                 if (window.parent && window.parent !== window) {
                     window.parent.postMessage({
                         version: 1,
@@ -9205,8 +9486,8 @@ body.is-embedded .keypad-btn {
                 case 'REGISTERED':
                     this.dom.statusBadge.classList.add('online');
                     this.dom.statusText.textContent = this.t.statusOnline;
-                    this.dom.connectBtn.textContent = this.t.disconnect;
-                    this.dom.connectBtn.className = 'btn btn-danger';
+                    this.dom.connectBtn.textContent = this.currentLang === 'ar' ? 'خروج' : 'Sign Out';
+                    this.dom.connectBtn.className = 'compact-connect-btn btn-danger';
                     if (this.dom.callBtn) this.dom.callBtn.disabled = (this.core.activeCalls.size > 0);
                     break;
                 case 'CONNECTING':
@@ -9246,7 +9527,7 @@ body.is-embedded .keypad-btn {
             const currentCall = calls[0] || null;
 
             if (this.dom.callBtn) {
-                this.dom.callBtn.disabled = inCall;
+                this.dom.callBtn.disabled = inCall || (this.core.regState !== 'REGISTERED');
             }
 
             const line2CallBtn = document.getElementById('line2CallBtn');
@@ -9335,12 +9616,24 @@ body.is-embedded .keypad-btn {
             container.textContent = '';
 
             const calls = Array.from(this.core.activeCalls.values());
+            const workspace = document.getElementById('line1Workspace');
+
             if (calls.length === 0) {
                 container.style.display = 'none';
+                container.classList.add('hidden');
+                if (workspace) {
+                    workspace.classList.remove('hidden');
+                    workspace.style.removeProperty('display');
+                }
                 return;
             }
 
-            container.style.display = 'flex';
+            if (workspace) {
+                workspace.classList.add('hidden');
+                workspace.style.setProperty('display', 'none', 'important');
+            }
+            container.classList.remove('hidden');
+            container.style.setProperty('display', 'flex', 'important');
             calls.forEach(call => {
                 const card = document.createElement('div');
                 card.className = `active-call-hero ${call.status === 'ringing' ? 'ringing' : ''}`;
@@ -9479,14 +9772,20 @@ body.is-embedded .keypad-btn {
 
                 // Action Buttons Row with Vector SVGs
                 const isIncomingRinging = (call.direction === 'incoming' && !call.answerTime);
-                const actionsRow = document.createElement('div');
-                actionsRow.className = isIncomingRinging ? 'hero-actions-row hero-actions-row--incoming' : 'hero-actions-row';
 
                 if (isIncomingRinging) {
+                    const actionsRow = document.createElement('div');
+                    actionsRow.className = 'hero-actions-row hero-actions-row--incoming';
+
                     const answerBtn = document.createElement('button');
                     answerBtn.className = 'end-call-btn btn-answer call-action--answer';
                     setButtonContent(answerBtn, SVG_ICONS.phone, this.t.answer || 'Answer');
                     answerBtn.addEventListener('click', () => this.core.answerCall(call.id));
+
+                    const transferRingingBtn = document.createElement('button');
+                    transferRingingBtn.className = 'end-call-btn btn-transfer call-action--transfer';
+                    setButtonContent(transferRingingBtn, SVG_ICONS.transfer, this.t.transfer || 'Transfer');
+                    transferRingingBtn.addEventListener('click', () => this.openTransferModal(call.id));
 
                     const declineBtn = document.createElement('button');
                     declineBtn.className = 'end-call-btn btn-decline call-action--decline';
@@ -9494,43 +9793,88 @@ body.is-embedded .keypad-btn {
                     declineBtn.addEventListener('click', () => this.core.hangupCall(call.id));
 
                     actionsRow.appendChild(answerBtn);
+                    actionsRow.appendChild(transferRingingBtn);
                     actionsRow.appendChild(declineBtn);
+                    card.appendChild(actionsRow);
                 } else {
-                    // End Call Button
+                    // In-Call DTMF Keypad (for navigating automated IVR menus)
+                    const dtmfSection = document.createElement('div');
+                    dtmfSection.className = 'in-call-dtmf-section';
+                    // DTMF input display box
+                    const dtmfDisplay = document.createElement('div');
+                    dtmfDisplay.className = 'dtmf-input-display';
+                    dtmfDisplay.id = `dtmfDisplay_${call.id}`;
+                    dtmfDisplay.textContent = '';
+                    dtmfSection.appendChild(dtmfDisplay);
+
+                    const dtmfGrid = document.createElement('div');
+                    dtmfGrid.className = 'in-call-dtmf-grid';
+
+                    const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+                    dtmfKeys.forEach(k => {
+                        const kBtn = document.createElement('button');
+                        kBtn.type = 'button';
+                        kBtn.className = 'dtmf-key-btn';
+                        kBtn.textContent = k;
+                        kBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            try {
+                                if (call.session) {
+                                    call.session.sendDTMF(k);
+                                    this.core.playDtmfSidetone(k);
+                                    const display = document.getElementById(`dtmfDisplay_${call.id}`);
+                                    if (display) {
+                                        display.textContent += k;
+                                        display.scrollLeft = display.scrollWidth;
+                                    }
+                                }
+                            } catch (_) {}
+                        });
+                        dtmfGrid.appendChild(kBtn);
+                    });
+                    dtmfSection.appendChild(dtmfGrid);
+                    card.appendChild(dtmfSection);
+
+                    // Row 1: In-call Control Actions (Mute, Hold, Transfer)
+                    const actionsRow = document.createElement('div');
+                    actionsRow.className = 'hero-actions-row';
+
+                    const muteBtn = document.createElement('button');
+                    muteBtn.className = `hero-pill-action ${call.isMuted ? 'active-mute' : ''}`;
+                    setButtonContent(muteBtn, null, call.isMuted ? this.t.unmute : this.t.mute);
+                    muteBtn.addEventListener('click', () => {
+                        this.core.toggleMute(call.id);
+                    });
+
+                    const holdBtn = document.createElement('button');
+                    holdBtn.className = `hero-pill-action ${call.isHeld ? 'active-hold' : ''}`;
+                    setButtonContent(holdBtn, null, call.isHeld ? this.t.unhold : this.t.hold);
+                    holdBtn.addEventListener('click', () => {
+                        this.core.toggleHold(call.id);
+                    });
+
+                    const transferBtn = document.createElement('button');
+                    transferBtn.className = 'hero-pill-action';
+                    setButtonContent(transferBtn, null, this.t.transfer);
+                    transferBtn.addEventListener('click', () => this.openTransferModal(call.id));
+
+                    actionsRow.appendChild(muteBtn);
+                    actionsRow.appendChild(holdBtn);
+                    actionsRow.appendChild(transferBtn);
+                    card.appendChild(actionsRow);
+
+                    // Row 2: Full-width End Call Button
+                    const hangupRow = document.createElement('div');
+                    hangupRow.className = 'hero-hangup-row';
+
                     const endBtn = document.createElement('button');
                     endBtn.className = 'end-call-btn btn-hangup call-action--end';
                     setButtonContent(endBtn, SVG_ICONS.phoneOff, this.t.endCall);
                     endBtn.addEventListener('click', () => this.core.hangupCall(call.id));
 
-                    // Mute Button (With active-mute class)
-                    const muteBtn = document.createElement('button');
-                    muteBtn.className = `hero-pill-action ${call.isMuted ? 'active-mute' : ''}`;
-                    setButtonContent(muteBtn, call.isMuted ? SVG_ICONS.micOff : SVG_ICONS.mic, call.isMuted ? this.t.unmute : this.t.mute);
-                    muteBtn.addEventListener('click', () => {
-                        this.core.toggleMute(call.id);
-                    });
-
-                    // Hold Button (With active-hold class)
-                    const holdBtn = document.createElement('button');
-                    holdBtn.className = `hero-pill-action ${call.isHeld ? 'active-hold' : ''}`;
-                    setButtonContent(holdBtn, call.isHeld ? SVG_ICONS.play : SVG_ICONS.pause, call.isHeld ? this.t.unhold : this.t.hold);
-                    holdBtn.addEventListener('click', () => {
-                        this.core.toggleHold(call.id);
-                    });
-
-                    // Transfer Button
-                    const transferBtn = document.createElement('button');
-                    transferBtn.className = 'hero-pill-action';
-                    setButtonContent(transferBtn, SVG_ICONS.transfer, this.t.transfer);
-                    transferBtn.addEventListener('click', () => this.openTransferModal(call.id));
-
-                    actionsRow.appendChild(endBtn);
-                    actionsRow.appendChild(muteBtn);
-                    actionsRow.appendChild(holdBtn);
-                    actionsRow.appendChild(transferBtn);
+                    hangupRow.appendChild(endBtn);
+                    card.appendChild(hangupRow);
                 }
-
-                card.appendChild(actionsRow);
 
                 // Render recording indicator if active
                 if (call.isRecording) {
@@ -10053,7 +10397,7 @@ body.is-embedded .keypad-btn {
             if (this.dom.connectBtn) {
                 this.dom.connectBtn.addEventListener('click', async () => {
                     if (this.core.regState === 'REGISTERED' || this.core.regState === 'CONNECTING' || this.core.regState === 'RETRY_WAIT') {
-                        this.core.disconnect();
+                        this.logout();
                     } else {
                         const preset = this.getSelectedPreset();
                         if (!preset) {
@@ -10221,6 +10565,44 @@ body.is-embedded .keypad-btn {
                 this.realDialNumber = '';
             } catch (err) {
                 this.showToast(err.message, 'error');
+            }
+        }
+
+        redialLastNumber() {
+            const history = this.getDialedHistory('line1');
+            if (history && history.length > 0) {
+                const lastNum = history[0];
+                if (this.dom.dialInput) {
+                    this.dom.dialInput.value = lastNum;
+                }
+                this.handleCallAction();
+            } else {
+                this.showToast(this.currentLang === 'ar' ? 'لا يوجد رقم سابق لإعادة طلبه' : 'No previous call to redial', 'info');
+            }
+        }
+
+        // --- RELOAD EXTENSION CONNECTION ---
+        async reloadConnection() {
+            const isAr = this.currentLang === 'ar';
+            const reloadBtn = document.getElementById('titlebarReloadBtn');
+            if (reloadBtn) reloadBtn.classList.add('spinning');
+            this.showToast(isAr ? 'جاري إعادة الاتصال بالسنترال...' : 'Reloading Asterisk connection...', 'info');
+
+            try {
+                const preset = this.getSelectedPreset() || (this.core && this.core.activePreset);
+                const secret = (preset ? (preset.secret || this.sessionSecrets.get(preset.id) || this.lastSessionPassword || (this.core && this.core.lastSecret) || '') : '');
+                if (preset && secret) {
+                    await this.core.connect(preset, secret);
+                } else {
+                    await this.core.reconnect();
+                }
+                this.showToast(isAr ? 'تم تحديث الاتصال بالسنترال بنجاح' : 'Asterisk connection reloaded successfully', 'success');
+            } catch (err) {
+                this.showToast(err.message, 'error');
+            } finally {
+                setTimeout(() => {
+                    if (reloadBtn) reloadBtn.classList.remove('spinning');
+                }, 600);
             }
         }
 
@@ -10643,12 +11025,11 @@ body.is-embedded .keypad-btn {
                 const nameSpan = document.createElement('div');
                 nameSpan.className = 'recent-name';
                 nameSpan.textContent = contact.name || contact.number;
+                nameSpan.title = contact.name || contact.number;
 
                 const numSpan = document.createElement('div');
-                numSpan.className = 'recent-dir font-mono';
-                numSpan.style.color = 'var(--text-muted)';
+                numSpan.className = 'contact-phone-number';
                 numSpan.textContent = contact.number;
-
                 info.appendChild(nameSpan);
                 info.appendChild(numSpan);
                 left.appendChild(avatar);

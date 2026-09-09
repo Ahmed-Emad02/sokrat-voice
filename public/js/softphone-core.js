@@ -34,9 +34,9 @@
             this.selectedAudioInputId = '';
             this.selectedAudioOutputId = '';
             this.isSpeakerMuted = false;
+
             this.micVolume = 100;
             this.speakerVolume = 100;
-
             // Audio & Media
             this.audioCtx = null;
             this.micStream = null;
@@ -262,7 +262,15 @@
 
             try {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('MediaDevices API is unavailable. Ensure HTTPS connection.');
+                    console.warn('[Microphone] MediaDevices API unavailable on HTTP origin. Using WebAudio fallback stream.');
+                    this.initAudioContext();
+                    if (this.audioCtx && typeof this.audioCtx.createMediaStreamDestination === 'function') {
+                        const dest = this.audioCtx.createMediaStreamDestination();
+                        this.micStream = dest.stream;
+                        this.micPermissionGranted = false;
+                        return dest.stream;
+                    }
+                    return null;
                 }
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 this.micStream = stream;
@@ -372,6 +380,7 @@
             this.emit('vuLevel', 0);
             this.emit('micSpectrum', { level: 0, bins: [0, 0, 0, 0, 0, 0, 0, 0] });
         }
+
         async setOutputDevice(deviceId) {
             this.selectedAudioOutputId = deviceId;
             if (this.remoteAudioEl && typeof this.remoteAudioEl.setSinkId === 'function') {
@@ -804,6 +813,11 @@
             if (this.regState === 'AUTH_FAILED' || !this.activePreset) return;
 
             this.reconnectAttempt++;
+            if (this.reconnectAttempt > this.options.maxReconnectAttempts) {
+                this.setRegState('DISCONNECTED');
+                this.emit('reconnectExhausted', { attempts: this.reconnectAttempt - 1 });
+                return;
+            }
             const backoffSec = Math.min(30, Math.pow(2, Math.min(5, this.reconnectAttempt)));
             this.emit('retryCountdown', { seconds: backoffSec, attempt: this.reconnectAttempt });
 
@@ -813,6 +827,7 @@
                 }
             }, backoffSec * 1000);
         }
+
         async reconnect() {
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
             if (this.regState === 'AUTH_FAILED') return;
@@ -936,12 +951,38 @@
                         this.stopRingback();
                         this.startSpeakerVuMeter(stream);
                     }
+                    if (event.track && typeof event.track.addEventListener === 'function') {
+                        event.track.addEventListener('ended', () => {
+                            console.log('[SokratCore] Remote audio track ended');
+                            if (callEntry && callEntry.status === 'active') {
+                                this.handleCallEnd(callEntry, 'answered');
+                            }
+                        });
+                    }
                 });
                 pc.addEventListener('iceconnectionstatechange', () => {
                     console.log('[SokratCore] ICE state:', pc.iceConnectionState);
+                    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+                        setTimeout(() => {
+                            if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+                                if (callEntry && callEntry.status === 'active') {
+                                    console.log('[SokratCore] Remote ICE connection dropped, ending call');
+                                    this.handleCallEnd(callEntry, 'answered');
+                                }
+                            }
+                        }, 1500);
+                    }
+                });
+                pc.addEventListener('connectionstatechange', () => {
+                    console.log('[SokratCore] Connection state:', pc.connectionState);
+                    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                        if (callEntry && callEntry.status === 'active') {
+                            console.log('[SokratCore] PeerConnection disconnected, ending call');
+                            this.handleCallEnd(callEntry, 'answered');
+                        }
+                    }
                 });
             };
-
             // For outgoing calls, session.connection already exists by the time
             // handleNewRTCSession fires (JsSIP creates it during ua.call()).
             // The 'peerconnection' event was already emitted and missed.
@@ -989,8 +1030,8 @@
                     this.remoteAudioEl.play().catch(() => {});
                     this.startSpeakerVuMeter(remoteStream);
                 }
-
                 this.startQualityMetricsPoller(session);
+                this.startActiveCallChannelPoller(callEntry);
                 this.checkRecordingStatus(callEntry);
                 this.emit('callAnswered', callEntry);
             });
@@ -1054,6 +1095,7 @@
             this.stopRingtone();
             this.stopRingback();
             this.stopTrunkPoller();
+            this.stopActiveCallChannelPoller();
             this.stopQualityMetricsPoller();
             if (callEntry.progressTimer) {
                 clearTimeout(callEntry.progressTimer);
@@ -1097,9 +1139,11 @@
         // since chan_dongle won't signal it back via SIP.
         startTrunkPoller(callEntry) {
             this.stopTrunkPoller();
+            // Resolve API URL once — works for /phone/, /, /standalone-softphone/
             const pathParts = (typeof window !== 'undefined' && window.location && window.location.pathname)
                 ? window.location.pathname.split('/').filter(Boolean)
                 : [];
+            // If page was loaded from /phone or /standalone-softphone, prefix the API call
             const prefix = (pathParts.length > 0 && ['phone', 'standalone-softphone'].includes(pathParts[0]))
                 ? '/' + pathParts[0] + '/'
                 : '/';
@@ -1140,6 +1184,46 @@
             if (this._trunkPoller) {
                 clearInterval(this._trunkPoller);
                 this._trunkPoller = null;
+            }
+        }
+
+        startActiveCallChannelPoller(callEntry) {
+            this.stopActiveCallChannelPoller();
+            const prefix = (typeof window !== 'undefined' && typeof window.location?.pathname === 'string' && window.location.pathname.startsWith('/phone')) ? '/phone/' : '/';
+            const ext = (this.activePreset && this.activePreset.extension) ? this.activePreset.extension : '';
+            const apiUrl = `${prefix}api/trunk-call-state${ext ? '?ext=' + encodeURIComponent(ext) : ''}`;
+
+            let inactiveCount = 0;
+            this._activeCallPoller = setInterval(async () => {
+                if (!callEntry || callEntry.status !== 'active') {
+                    this.stopActiveCallChannelPoller();
+                    return;
+                }
+                try {
+                    const resp = await fetch(apiUrl);
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    if (data && data.success !== false && data.callerActive === false) {
+                        inactiveCount++;
+                        if (inactiveCount >= 4) {
+                            console.log('[SokratCore] Asterisk confirms channel no longer active on PBX, terminating session');
+                            this.stopActiveCallChannelPoller();
+                            try { callEntry.session.terminate(); } catch (_) {}
+                            this.handleCallEnd(callEntry, 'answered');
+                        }
+                    } else {
+                        inactiveCount = 0;
+                    }
+                } catch (err) {
+                    console.warn('[ActiveCallPoller] poll error:', err?.message);
+                }
+            }, 2000);
+        }
+
+        stopActiveCallChannelPoller() {
+            if (this._activeCallPoller) {
+                clearInterval(this._activeCallPoller);
+                this._activeCallPoller = null;
             }
         }
 
@@ -1319,11 +1403,31 @@
             const isAr = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'ar');
             const transferredMsg = isAr ? `تم التحويل إلى ${target}` : `Transferred to ${target}`;
 
+            // If call is still ringing (incoming, not yet answered):
+            if (!callEntry.answerTime && callEntry.direction === 'incoming') {
+                try {
+                    callEntry.session.terminate({
+                        status_code: 302,
+                        reason_phrase: 'Moved Temporarily',
+                        extraHeaders: [`Contact: <${targetUri}>`]
+                    });
+                    this.emit('toast', { type: 'success', message: isAr ? `تم تحويل المكالمة الواردة إلى ${target}` : `Transferred ringing call to ${target}` });
+                    this.handleCallEnd(callEntry, 'transferred');
+                    return;
+                } catch (deflectErr) {
+                    console.warn('[SokratCore] Deflect failed, answering and transferring:', deflectErr);
+                    this.answerCall(callId);
+                    setTimeout(() => {
+                        this.blindTransfer(callId, targetNumber);
+                    }, 350);
+                    return;
+                }
+            }
+
             const cleanupAndNotify = () => {
                 this.emit('toast', { type: 'success', message: transferredMsg });
                 this.handleCallEnd(callEntry, 'transferred');
             };
-
             try {
                 callEntry.session.refer(targetUri, {
                     extraHeaders: [
