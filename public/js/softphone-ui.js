@@ -185,9 +185,6 @@
             this.CONTACTS_KEY = 'sokrat_softphone_contacts_v2';
             this.FAVORITES_KEY = 'sokrat_softphone_favorites_v2';
             this.serverExtensionsList = [];
-            this.serverWebrtcList = [];
-            this.serverHost = window.location.hostname || '127.0.0.1';
-            this.serverDefaultWss = `wss://${this.serverHost}:8089/ws`;
 
             if (window.opener || window.name === 'sokratSoftphonePopout' || window.innerWidth <= 1000) {
                 document.documentElement.classList.add('is-popout');
@@ -200,6 +197,9 @@
             this.currentCallQuality = null;
             this.incomingNotification = null;
             this.attendedTransferState = null;
+            this.activeDialerLead = null;
+            this.activeDialerLeadPollTimer = null;
+            this.activeDialerLeadPollController = null;
             this.maskPhoneNumbers = Boolean(window.SOFTPHONE_EMBED_CONFIG?.maskPhoneNumbers);
             this.realDialNumber = '';
         }
@@ -236,8 +236,21 @@
             this.updateInCallButtonStates();
             this.onPresetChanged();
             this.setupClickToCall();
-            this.initVolumeControls();
-
+            await this.loadPresets();
+            try {
+                const preset = this.getSelectedPreset();
+                const ext = preset ? String(preset.extension).replace(/^ext_/, '') : '150';
+                const cached = localStorage.getItem('sokrat_policy_' + ext);
+                if (cached) {
+                    const p = JSON.parse(cached);
+                    this.extensionPolicies = this.extensionPolicies || new Map();
+                    this.extensionPolicies.set(ext, p);
+                    this.applyPolicyToUi(p);
+                }
+            } catch (_) {}
+            if (this.core && this.core.regState === 'REGISTERED') {
+                this.startActiveDialerLeadPoller();
+            }
             // Embedded Session Auto-Connect from CRM
             const embedCfg = window.SOFTPHONE_EMBED_CONFIG;
             if (embedCfg && embedCfg.isEmbedded && embedCfg.autoConnect && embedCfg.embedPreset) {
@@ -1465,8 +1478,17 @@
                     const endBtn = document.createElement('button');
                     endBtn.className = 'end-call-btn btn-hangup call-action--end';
                     endBtn.innerHTML = `${SVG_ICONS.phoneOff}<span>${this.currentLang === 'ar' ? 'إنهاء' : 'End Call'}</span>`;
-                    endBtn.onclick = () => this.line2Core.hangupCall(call.id);
-
+                    const isOutboundRinging = (call.direction === 'outgoing' && !call.answerTime);
+                    const blockCancel = isOutboundRinging && this.isOutboundRingingCancelBlocked();
+                    if (blockCancel) {
+                        endBtn.disabled = true;
+                        endBtn.classList.add('policy-locked');
+                        endBtn.title = this.currentLang === 'ar'
+                            ? 'ممنوع إنهاء المكالمة أثناء الرنين بموجب سياسة الإدارة'
+                            : 'Ending outbound calls while ringing is blocked by Administrator policy';
+                    } else {
+                        endBtn.onclick = () => this.line2Core.hangupCall(call.id);
+                    }
                     const muteBtn = document.createElement('button');
                     muteBtn.className = `hero-pill-action ${call.isMuted ? 'active-mute' : ''}`;
                     muteBtn.innerHTML = `${call.isMuted ? SVG_ICONS.micOff : SVG_ICONS.mic}<span>${call.isMuted ? 'Unmute' : 'Mute'}</span>`;
@@ -1790,13 +1812,17 @@
             if (!extNum) return;
 
             try {
-                const prefix = window.location.pathname.startsWith('/phone') ? '/phone' : '';
-                const res = await fetch(`${prefix}/api/extension-policy/${extNum}`);
+                const prefix = (window.location.pathname && window.location.pathname.startsWith('/phone')) ? '/phone' : '';
+                const res = await fetch(`${prefix}/api/extension-policy/${extNum}`, { cache: 'no-store' });
                 if (!res.ok) return;
                 const data = await res.json();
-                const policy = data.policy || { auto_answer: 'user_choice', dnd: 'user_choice' };
+                const policy = data.policy || { auto_answer: 'user_choice', dnd: 'user_choice', disable_outbound_ringing_cancel: 0 };
                 this.extensionPolicies = this.extensionPolicies || new Map();
                 this.extensionPolicies.set(extNum, policy);
+                this.currentPolicy = policy;
+                try {
+                    localStorage.setItem('sokrat_policy_' + extNum, JSON.stringify(policy));
+                } catch (_) {}
                 this.applyPolicyToUi(policy);
             } catch (_) {}
         }
@@ -1887,8 +1913,36 @@
                     dndBtn.title = isAr ? 'عدم الإزعاج' : 'Do Not Disturb';
                 }
             }
+
+            // 3. Outbound ringing cancel policy enforcement
+            const blockCancel = Boolean(policy.disable_outbound_ringing_cancel === 1 || policy.disable_outbound_ringing_cancel === '1' || policy.disable_outbound_ringing_cancel === true);
+            this.core.disableOutboundRingingCancel = blockCancel;
+            if (this.line2Core) this.line2Core.disableOutboundRingingCancel = blockCancel;
+            this.currentPolicy = policy;
         }
 
+        isOutboundRingingCancelBlocked(call) {
+            const preset = (this.core && this.core.activePreset) || this.getSelectedPreset();
+            const ext = preset ? String(preset.extension).replace(/^ext_/, '') : '150';
+            let policy = (ext && this.extensionPolicies && this.extensionPolicies.get(ext)) || this.currentPolicy;
+            if (!policy && typeof localStorage !== 'undefined') {
+                try {
+                    const cached = localStorage.getItem('sokrat_policy_' + ext);
+                    if (cached) policy = JSON.parse(cached);
+                } catch (_) {}
+            }
+            const isPolicyEnabled = Boolean(policy && (
+                policy.disable_outbound_ringing_cancel === 1 ||
+                policy.disable_outbound_ringing_cancel === '1' ||
+                policy.disable_outbound_ringing_cancel === true
+            ));
+            if (!isPolicyEnabled) return false;
+
+            const targetCall = call || (this.core ? Array.from(this.core.activeCalls.values())[0] : null);
+            if (!targetCall) return true;
+
+            return Boolean(targetCall.direction === 'outgoing' && !targetCall.answerTime);
+        }
         updatePresetInStorage(preset) {
             if (!preset || !preset.id) return;
             let presets = this.getPresets();
@@ -2229,11 +2283,14 @@
             this.renderSavedAccountsLoginList();
             this.showToast('Account deleted', 'info');
         }
-
-        // --- CORE EVENT BINDINGS ---
         bindCoreEvents() {
             this.core.on('regStateChange', ({ state }) => {
                 this.updateStatusUi(state);
+                if (state === 'REGISTERED') {
+                    this.startActiveDialerLeadPoller();
+                } else {
+                    this.stopActiveDialerLeadPoller();
+                }
                 if (window.parent && window.parent !== window) {
                     window.parent.postMessage({
                         version: 1,
@@ -2248,6 +2305,7 @@
             this.core.on('registered', () => {
                 this.updateViewMode('console');
                 this.syncCustomExtTrigger();
+                this.startActiveDialerLeadPoller();
                 if (window.parent && window.parent !== window) {
                     window.parent.postMessage({
                         version: 1,
@@ -2260,11 +2318,13 @@
                 }
             });
             this.core.on('unregistered', () => {
+                this.stopActiveDialerLeadPoller();
                 if (this.core.activePreset) {
                     this.updateStatusUi('DISCONNECTED');
                 }
             });
             this.core.on('authFailed', () => {
+                this.stopActiveDialerLeadPoller();
                 if (!window.SOFTPHONE_EMBED_CONFIG?.isEmbedded) {
                     this.updateViewMode('login');
                 }
@@ -2277,6 +2337,7 @@
                 if (this.dom.vuMeterBar) this.dom.vuMeterBar.style.width = `${level}%`;
             });
             this.core.on('incomingCall', (callEntry) => {
+                this.pollActiveDialerLead(true);
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.showIncomingNotification(callEntry);
@@ -2289,6 +2350,7 @@
                 window.postMessage(msg, '*');
             });
             this.core.on('callProgress', (callEntry) => {
+                this.pollActiveDialerLead(true);
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 const msg = {
@@ -2300,6 +2362,7 @@
                 window.postMessage(msg, '*');
             });
             this.core.on('callAnswered', (callEntry) => {
+                this.pollActiveDialerLead(true);
                 this.renderActiveCalls();
                 this.updateInCallButtonStates();
                 this.dismissNotification();
@@ -2410,6 +2473,65 @@
             }
         }
 
+        // --- ACTIVE DIALER LEAD POLLING ---
+        startActiveDialerLeadPoller() {
+            this.stopActiveDialerLeadPoller();
+            if (this.core.regState !== 'REGISTERED' || !this.core.activePreset?.extension) return;
+
+            this.pollActiveDialerLead();
+            this.activeDialerLeadPollTimer = setInterval(() => this.pollActiveDialerLead(), 2500);
+        }
+
+        stopActiveDialerLeadPoller() {
+            if (this.activeDialerLeadPollTimer) {
+                clearInterval(this.activeDialerLeadPollTimer);
+                this.activeDialerLeadPollTimer = null;
+            }
+            if (this.activeDialerLeadPollController) {
+                this.activeDialerLeadPollController.abort();
+                this.activeDialerLeadPollController = null;
+            }
+            if (this.activeDialerLead) {
+                this.activeDialerLead = null;
+                this.renderActiveCalls();
+            }
+        }
+
+        async pollActiveDialerLead(force = false) {
+            if (this.core.regState !== 'REGISTERED' || !this.core.activePreset?.extension) return;
+            if (this.activeDialerLeadPollController) {
+                if (!force) return;
+                try { this.activeDialerLeadPollController.abort(); } catch (_) {}
+                this.activeDialerLeadPollController = null;
+            }
+
+            const prefix = window.location.pathname.startsWith('/phone') ? '/phone/' : '/';
+            const extension = String(this.core.activePreset.extension).trim();
+            this.fetchAndApplyExtensionPolicy(extension);
+            const controller = new AbortController();
+            this.activeDialerLeadPollController = controller;
+            try {
+                const response = await fetch(`${prefix}api/dialer/active-lead?extension=${encodeURIComponent(extension)}`, {
+                    cache: 'no-store',
+                    signal: controller.signal
+                });
+                if (!response.ok) throw new Error(`Active lead request failed (${response.status})`);
+                const payload = await response.json();
+                if (controller.signal.aborted) return;
+                const nextLead = payload && payload.success !== false && payload.lead ? payload.lead : null;
+                const previous = JSON.stringify(this.activeDialerLead);
+                const next = JSON.stringify(nextLead);
+                if (previous !== next) {
+                    this.activeDialerLead = nextLead;
+                    this.renderActiveCalls();
+                }
+            } catch (err) {
+                if (err?.name !== 'AbortError') console.warn('[ActiveDialerLeadPoller] poll error:', err?.message);
+            } finally {
+                if (this.activeDialerLeadPollController === controller) this.activeDialerLeadPollController = null;
+            }
+        }
+
         // In-Call Button State Management (Clickable only while in a call)
         updateInCallButtonStates() {
             const inCall = this.core.activeCalls.size > 0;
@@ -2499,6 +2621,85 @@
             }
         }
 
+        renderActiveDialerLead(card) {
+            if (!card || !this.activeDialerLead) return;
+            const existing = card.querySelector('[data-active-dialer-lead]');
+            if (existing) existing.remove();
+
+            const lead = this.activeDialerLead;
+            const customData = (lead.custom_data && typeof lead.custom_data === 'object' && !Array.isArray(lead.custom_data))
+                ? lead.custom_data
+                : {};
+
+            const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim();
+            if (fullName) {
+                const heroNameEl = card.querySelector('.hero-name');
+                if (heroNameEl && (!heroNameEl.textContent || heroNameEl.textContent === lead.phone_number || heroNameEl.textContent === 'Incoming Call' || heroNameEl.textContent === 'مكالمة واردة')) {
+                    heroNameEl.textContent = fullName;
+                }
+                const heroAvatarEl = card.querySelector('.hero-avatar');
+                if (heroAvatarEl && fullName.charAt(0)) {
+                    heroAvatarEl.textContent = fullName.charAt(0).toUpperCase();
+                }
+            }
+
+            const fieldsToDisplay = [];
+            if (lead.company && String(lead.company).trim()) {
+                fieldsToDisplay.push({
+                    key: 'company',
+                    label: this.currentLang === 'ar' ? 'الشركة' : 'Company',
+                    value: String(lead.company).trim()
+                });
+            }
+
+            const configuredFields = Array.isArray(lead.lead_fields) ? lead.lead_fields : [];
+            configuredFields.forEach(field => {
+                const key = String(field?.key || '').trim();
+                const label = String(field?.label || field?.key || '').trim();
+                if (!key || !label) return;
+                const rawVal = customData[key];
+                if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+                    fieldsToDisplay.push({
+                        key,
+                        label,
+                        value: String(rawVal).trim()
+                    });
+                }
+            });
+
+            if (fieldsToDisplay.length === 0) return;
+
+            const panel = document.createElement('div');
+            panel.dataset.activeDialerLead = 'true';
+            panel.className = 'hero-lead-details';
+
+            const grid = document.createElement('div');
+            grid.className = 'hero-lead-fields-grid';
+            fieldsToDisplay.forEach(f => {
+                const fDiv = document.createElement('div');
+                fDiv.className = 'hero-lead-field';
+
+                const fLabel = document.createElement('span');
+                fLabel.className = 'hero-lead-field-label';
+                fLabel.textContent = f.label;
+
+                const fVal = document.createElement('span');
+                fVal.className = 'hero-lead-field-value';
+                fVal.textContent = f.value;
+
+                fDiv.appendChild(fLabel);
+                fDiv.appendChild(fVal);
+                grid.appendChild(fDiv);
+            });
+            panel.appendChild(grid);
+            const actionsDeck = card.querySelector('.hero-actions-deck') || card.querySelector('.hero-hangup-row') || card.querySelector('.hero-actions-row');
+            if (actionsDeck) {
+                card.insertBefore(panel, actionsDeck);
+            } else {
+                card.appendChild(panel);
+            }
+        }
+
         renderActiveCalls() {
             this.updateInCallWindowState();
             const container = this.dom.activeCallContainer;
@@ -2524,8 +2725,10 @@
             }
             container.classList.remove('hidden');
             container.style.setProperty('display', 'flex', 'important');
+            let firstCard = null;
             calls.forEach(call => {
                 const card = document.createElement('div');
+                if (!firstCard) firstCard = card;
                 card.className = `active-call-hero ${call.status === 'ringing' ? 'ringing' : ''}`;
 
                 // Title Area with badges
@@ -2766,8 +2969,31 @@
                     const endBtn = document.createElement('button');
                     endBtn.className = 'end-call-btn btn-hangup call-action--end';
                     setButtonContent(endBtn, SVG_ICONS.phoneOff, this.t.endCall);
-                    endBtn.addEventListener('click', () => this.core.hangupCall(call.id));
-
+                    const isOutboundRinging = (call.direction === 'outgoing' && !call.answerTime);
+                    const blockCancel = isOutboundRinging && this.isOutboundRingingCancelBlocked(call);
+                    if (blockCancel) {
+                        endBtn.disabled = true;
+                        endBtn.classList.add('policy-locked');
+                        endBtn.setAttribute('disabled', 'disabled');
+                        endBtn.style.setProperty('opacity', '0.35', 'important');
+                        endBtn.style.setProperty('cursor', 'not-allowed', 'important');
+                        endBtn.style.setProperty('pointer-events', 'none', 'important');
+                        endBtn.title = this.currentLang === 'ar'
+                            ? 'ممنوع إنهاء المكالمة أثناء الرنين بموجب سياسة الإدارة'
+                            : 'Ending outbound calls while ringing is blocked by Administrator policy';
+                    } else {
+                        endBtn.addEventListener('click', (e) => {
+                            if (this.isOutboundRingingCancelBlocked(call)) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                this.showToast(this.currentLang === 'ar'
+                                    ? 'ممنوع إنهاء المكالمة أثناء الرنين بموجب سياسة الإدارة'
+                                    : 'Ending outbound calls while ringing is blocked by Administrator policy', 'warning');
+                                return;
+                            }
+                            this.core.hangupCall(call.id);
+                        });
+                    }
                     hangupRow.appendChild(endBtn);
                     card.appendChild(hangupRow);
                 }
@@ -2783,6 +3009,7 @@
 
                 container.appendChild(card);
             });
+            this.renderActiveDialerLead(firstCard);
 
             // Re-render quality badge after active call cards are in DOM
             this.renderCallQualityBadge();
@@ -3542,11 +3769,14 @@
                 this.showToast(this.currentLang === 'ar' ? 'يوجد مكالمة نشطة بالفعل' : 'A call is already in progress', 'warning');
                 return;
             }
+            const preset = this.getSelectedPreset() || (this.core && this.core.activePreset);
+            if (preset && preset.extension) {
+                this.fetchAndApplyExtensionPolicy(preset.extension);
+            }
             const num = (this.realDialNumber && this.maskPhoneNumbers && this.dom.dialInput.value.includes('*'))
                 ? this.realDialNumber
                 : this.dom.dialInput.value.trim();
             if (!num) return;
-
             if (this.core.regState !== 'REGISTERED') {
                 this.pendingCallTarget = num;
                 this.showToast(this.currentLang === 'ar' ? `جاري الاتصال بالسنترال لطلب ${num}...` : `Connecting to call ${num}...`, 'info');

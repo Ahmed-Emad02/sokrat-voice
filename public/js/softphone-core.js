@@ -31,7 +31,7 @@
             this.nextCallId = 1;
             this.isDnd = false;
             this.isAutoAnswer = false;
-            this.selectedAudioInputId = '';
+            this.disableOutboundRingingCancel = false;
             this.selectedAudioOutputId = '';
             this.isSpeakerMuted = false;
 
@@ -1155,23 +1155,48 @@
                     this.startRingtone();
                 }
                 this.emit('incomingCall', callEntry);
-                // Auto-Answer if client toggle is on OR if SIP headers indicate auto-answer (dialer/intercom)
+                // Auto-answer dialer/intercom calls from SIP headers, independent of
+                // the user's general auto-answer preference.
                 let shouldAutoAnswer = Boolean(this.isAutoAnswer);
                 try {
                     const req = session.request;
-                    if (req && typeof req.getHeader === 'function') {
-                        const callInfo = req.getHeader('Call-Info') || '';
-                        const alertInfo = req.getHeader('Alert-Info') || '';
-                        if (/answer-after=0/i.test(callInfo) || /autoanswer|ring answer|intercom/i.test(alertInfo)) {
-                            shouldAutoAnswer = true;
+                    const readHeader = (name) => {
+                        if (!req) return '';
+                        const normalized = name.toLowerCase();
+                        let value = '';
+                        try {
+                            if (typeof req.getHeader === 'function') {
+                                value = req.getHeader(name) || req.getHeader(normalized) || '';
+                            }
+                        } catch (_) {}
+                        if (value) return String(value);
+
+                        const headerMap = req.headers || {};
+                        const entry = headerMap[normalized] || headerMap[name];
+                        const entries = Array.isArray(entry) ? entry : [entry];
+                        for (const item of entries) {
+                            const candidate = item && typeof item === 'object'
+                                ? (item.raw || item.value || item.parsed)
+                                : item;
+                            if (typeof candidate === 'string' && candidate.trim()) return candidate;
                         }
+                        return '';
+                    };
+                    const callInfo = readHeader('Call-Info');
+                    const alertInfo = readHeader('Alert-Info');
+                    const autoAnswerMarker = readHeader('X-Sokrat-Auto-Answer');
+                    if (/answer-after=0/i.test(callInfo)
+                        || /autoanswer|ring answer|intercom/i.test(alertInfo)
+                        || /^(?:1|yes|true)$/i.test(autoAnswerMarker.trim())) {
+                        shouldAutoAnswer = true;
                     }
                 } catch (_) {}
 
-                if (shouldAutoAnswer && this.micPermissionGranted) {
+                if (shouldAutoAnswer) {
                     setTimeout(() => {
-                        this.answerCall(callId);
-                    }, 300);
+                        const currentCall = this.activeCalls.get(callId);
+                        if (currentCall && currentCall.status === 'ringing') this.answerCall(callId);
+                    }, 200);
                 }
             } else {
                 this.startRingback();
@@ -1536,12 +1561,41 @@
 
 
                 hangupCall(callId) {
-            this.stopRingback();
-            this.stopRingtone();
-
             const callEntry = this.activeCalls.get(callId);
             if (!callEntry) return;
 
+            const isOutboundRinging = (callEntry.direction === 'outgoing' && !callEntry.answerTime);
+            let isCancelBlocked = false;
+            if (isOutboundRinging) {
+                if (this.disableOutboundRingingCancel) {
+                    isCancelBlocked = true;
+                } else if (typeof window !== 'undefined' && window.softphoneUi && typeof window.softphoneUi.isOutboundRingingCancelBlocked === 'function') {
+                    isCancelBlocked = window.softphoneUi.isOutboundRingingCancelBlocked(callEntry);
+                } else if (typeof localStorage !== 'undefined') {
+                    try {
+                        const ext = (this.activePreset && this.activePreset.extension) ? String(this.activePreset.extension).replace(/^ext_/, '') : '150';
+                        const cached = localStorage.getItem('sokrat_policy_' + ext);
+                        if (cached) {
+                            const p = JSON.parse(cached);
+                            if (p && (p.disable_outbound_ringing_cancel === 1 || p.disable_outbound_ringing_cancel === '1' || p.disable_outbound_ringing_cancel === true)) {
+                                isCancelBlocked = true;
+                            }
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            if (isCancelBlocked) {
+                const isAr = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'ar');
+                this.emit('toast', {
+                    type: 'warning',
+                    message: isAr ? 'ممنوع إنهاء المكالمة أثناء الرنين بموجب سياسة الإدارة' : 'Ending outbound calls while ringing is blocked by Administrator policy'
+                });
+                return;
+            }
+
+            this.stopRingback();
+            this.stopRingtone();
             if (callEntry.progressTimer) {
                 clearTimeout(callEntry.progressTimer);
                 callEntry.progressTimer = null;

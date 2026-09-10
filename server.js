@@ -7,7 +7,25 @@ const execAsync = promisify(exec);
 let mysql = null;
 try {
     mysql = require('mysql2/promise');
-} catch (_) {}
+} catch (_) {
+    try {
+        mysql = require('/opt/sokrat-voip/node_modules/mysql2/promise');
+    } catch (_) {}
+}
+
+let dbPool = null;
+if (mysql) {
+    try {
+        dbPool = mysql.createPool({
+            host: '127.0.0.1',
+            user: 'root',
+            password: 'admin',
+            database: 'asterisk',
+            waitForConnections: true,
+            connectionLimit: 5
+        });
+    } catch (_) {}
+}
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 8090;
@@ -217,19 +235,164 @@ app.get(['/api/call-status/:callId', '/phone/api/call-status/:callId'], async (r
 app.get(['/api/extension-policy/:ext', '/phone/api/extension-policy/:ext'], async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     const ext = String(req.params.ext || '').trim();
-    if (!ext) return res.json({ success: true, policy: { extension: '', auto_answer: 'user_choice', dnd: 'user_choice' } });
+    if (!ext) return res.json({ success: true, policy: { extension: '', auto_answer: 'user_choice', dnd: 'user_choice', disable_outbound_ringing_cancel: 0 } });
 
-    let policy = { extension: ext, auto_answer: 'user_choice', dnd: 'user_choice' };
+    let policy = { extension: ext, auto_answer: 'user_choice', dnd: 'user_choice', disable_outbound_ringing_cancel: 0 };
     try {
+        if (dbPool) {
+            try {
+                const [rows] = await dbPool.query('SELECT extension, auto_answer, dnd, COALESCE(disable_outbound_ringing_cancel, 0) AS disable_outbound_ringing_cancel FROM extension_policies WHERE extension = ?', [ext]);
+                if (rows && rows.length > 0) {
+                    policy = {
+                        extension: rows[0].extension,
+                        auto_answer: rows[0].auto_answer || 'user_choice',
+                        dnd: rows[0].dnd || 'user_choice',
+                        disable_outbound_ringing_cancel: rows[0].disable_outbound_ringing_cancel ? 1 : 0
+                    };
+                    return res.json({ success: true, policy });
+                }
+            } catch (_) {}
+        }
         const safeExt = ext.replace(/[^0-9A-Za-z_-]/g, '');
-        const cmd = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT extension, auto_answer, dnd FROM extension_policies WHERE extension = '${safeExt}'" 2>/dev/null`;
+        const cmd = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT extension, auto_answer, dnd, COALESCE(disable_outbound_ringing_cancel, 0) FROM extension_policies WHERE extension = '${safeExt}'" 2>/dev/null`;
         const { stdout } = await execAsync(cmd, { timeout: 3000 });
         if (stdout && stdout.trim()) {
-            const [extension, auto_answer, dnd] = stdout.trim().split('\t');
-            policy = { extension, auto_answer: auto_answer || 'user_choice', dnd: dnd || 'user_choice' };
+            const [extension, auto_answer, dnd, disable_cancel] = stdout.trim().split('\t');
+            policy = {
+                extension,
+                auto_answer: auto_answer || 'user_choice',
+                dnd: dnd || 'user_choice',
+                disable_outbound_ringing_cancel: parseInt(disable_cancel, 10) === 1 ? 1 : 0
+            };
         }
     } catch (_) {}
     res.json({ success: true, policy });
+});
+// Active campaign lead assigned to a registered softphone extension.
+// Keep this endpoint read-only and uncached: it is polled by the standalone voice UI.
+app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
+    const requestedExtension = String(req.query.extension || req.query.ext || '').trim();
+    if (!requestedExtension || !/^[0-9A-Za-z][0-9A-Za-z_-]{0,19}$/.test(requestedExtension)) {
+        return res.status(400).json({ success: false, error: 'Invalid extension', lead: null });
+    }
+
+    try {
+        let row = null;
+        if (dbPool) {
+            try {
+                const [rows] = await dbPool.query(`
+                    SELECT
+                        a.attempt_uuid,
+                        a.campaign_id,
+                        l.id AS lead_id,
+                        c.name AS campaign_name,
+                        c.lead_fields,
+                        l.phone_number,
+                        l.first_name,
+                        l.last_name,
+                        l.company,
+                        l.custom_data
+                    FROM dialer_call_attempts a
+                    INNER JOIN dialer_leads l ON l.id = a.lead_id
+                    INNER JOIN dialer_campaigns c ON c.id = a.campaign_id
+                    WHERE a.agent_extension = ?
+                      AND (a.active_flag = 1 OR a.updated_at >= NOW() - INTERVAL 1 MINUTE)
+                    ORDER BY (a.active_flag = 1) DESC, a.updated_at DESC
+                    LIMIT 1
+                `, [requestedExtension]);
+                row = rows[0] || null;
+            } catch (dbErr) {
+                console.warn('[dialer-active-lead] db pool query warning:', dbErr.message);
+            }
+        }
+
+        if (!row) {
+            const sql = `
+                SELECT
+                    a.attempt_uuid,
+                    a.campaign_id,
+                    l.id AS lead_id,
+                    c.name AS campaign_name,
+                    TO_BASE64(COALESCE(c.lead_fields, '')) AS lead_fields_b64,
+                    l.phone_number,
+                    l.first_name,
+                    l.last_name,
+                    COALESCE(l.company, '') AS company,
+                    TO_BASE64(COALESCE(l.custom_data, '')) AS custom_data_b64
+                FROM dialer_call_attempts a
+                INNER JOIN dialer_leads l ON l.id = a.lead_id
+                INNER JOIN dialer_campaigns c ON c.id = a.campaign_id
+                WHERE a.agent_extension = '${requestedExtension}'
+                  AND (a.active_flag = 1 OR a.updated_at >= NOW() - INTERVAL 1 MINUTE)
+                ORDER BY (a.active_flag = 1) DESC, a.updated_at DESC
+                LIMIT 1
+            `.replace(/\\s+/g, ' ').trim();
+            const cmd = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -B -e "${sql.replace(/"/g, '\\\\"')}" 2>/dev/null`;
+            const { stdout } = await execAsync(cmd, { timeout: 3000 });
+            const line = (stdout || '').trim().split('\\n')[0];
+            if (line) {
+                const parts = line.split('\\t');
+                if (parts.length >= 10) {
+                    let lf = '';
+                    let cd = '';
+                    try { lf = Buffer.from(parts[4], 'base64').toString('utf8'); } catch (_) {}
+                    try { cd = Buffer.from(parts[9], 'base64').toString('utf8'); } catch (_) {}
+                    row = {
+                        attempt_uuid: parts[0],
+                        campaign_id: parts[1],
+                        lead_id: parts[2],
+                        campaign_name: parts[3],
+                        lead_fields: lf,
+                        phone_number: parts[5],
+                        first_name: parts[6],
+                        last_name: parts[7],
+                        company: parts[8],
+                        custom_data: cd
+                    };
+                }
+            }
+        }
+
+        if (!row) return res.json({ success: true, lead: null });
+
+        let customData = {};
+        try {
+            const parsed = typeof row.custom_data === 'string' ? JSON.parse(row.custom_data) : row.custom_data;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) customData = parsed;
+        } catch (_) {}
+
+        let leadFields = [];
+        try {
+            const parsed = typeof row.lead_fields === 'string' ? JSON.parse(row.lead_fields) : row.lead_fields;
+            if (Array.isArray(parsed)) {
+                leadFields = parsed.slice(0, 40).map(field => ({
+                    key: String(field?.key || '').trim().slice(0, 64),
+                    label: String(field?.label || '').trim().slice(0, 120)
+                })).filter(field => /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(field.key) && field.label);
+            }
+        } catch (_) {}
+
+        return res.json({
+            success: true,
+            lead: {
+                attempt_uuid: row.attempt_uuid || null,
+                campaign_id: row.campaign_id == null ? null : Number(row.campaign_id),
+                lead_id: row.lead_id == null ? null : Number(row.lead_id),
+                campaign_name: row.campaign_name || '',
+                phone_number: row.phone_number || '',
+                first_name: row.first_name || '',
+                last_name: row.last_name || '',
+                company: row.company || '',
+                custom_data: customData,
+                lead_fields: leadFields
+            }
+        });
+    } catch (err) {
+        console.error('[dialer-active-lead] error:', err.message);
+        return res.status(500).json({ success: false, error: 'Unable to load active lead', lead: null });
+    }
 });
 
 // --- SOKRAT VOIP SHARED ADDRESS BOOK API (SQLite address_book.db) ---
