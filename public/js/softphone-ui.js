@@ -4700,7 +4700,112 @@
             handleHash();
             window.addEventListener('hashchange', handleHash);
 
-            // 3. Cross-Window postMessage Listener (for CRM iframes, popups & host windows)
+            // 3. Action Dispatcher for CRM postMessage & BroadcastChannel
+            const handleAction = (data, source = null, origin = '*') => {
+                if (!data) return;
+                const type = String(data.type || data.action || '').toLowerCase();
+                const activeCalls = this.core.activeCalls ? Array.from(this.core.activeCalls.values()) : [];
+                const activeCall = activeCalls[0];
+                const incomingCall = activeCalls.find(c => c.direction === 'incoming' && !c.answerTime);
+                const outgoingRingingCall = activeCalls.find(c => c.direction === 'outgoing' && !c.answerTime);
+
+                // 1. DIAL / CLICK_TO_CALL (Idle State)
+                if (type === 'sokrat.voice.dial' || type === 'click_to_call' || type === 'dial' || type === 'call') {
+                    const raw = data.payload?.phone || data.number || data.phone || data.target || data.ext;
+                    const autoCall = data.payload ? (data.payload.autoCall !== false) : (data.autoCall !== false && data.auto !== false);
+                    const target = sanitize(raw);
+                    if (target) this.clickToCall(target, autoCall);
+                }
+                // 2. ANSWER (Incoming Ringing Call)
+                else if (type === 'sokrat.voice.answer' || type === 'answer') {
+                    const targetCall = incomingCall || activeCall;
+                    if (targetCall) this.core.answerCall(targetCall.id);
+                }
+                // 3. REJECT / DECLINE (Incoming Ringing Call)
+                else if (type === 'sokrat.voice.reject' || type === 'sokrat.voice.decline' || type === 'reject' || type === 'decline') {
+                    const targetCall = incomingCall || activeCall;
+                    if (targetCall) this.core.hangupCall(targetCall.id);
+                }
+                // 4. CANCEL (Outgoing Ringing Call)
+                else if (type === 'sokrat.voice.cancel' || type === 'cancel') {
+                    const targetCall = outgoingRingingCall || activeCall;
+                    if (targetCall) this.core.hangupCall(targetCall.id);
+                }
+                // 5. HANGUP (Active Call)
+                else if (type === 'sokrat.voice.hangup' || type === 'hangup' || type === 'terminate') {
+                    if (activeCall) this.core.hangupCall(activeCall.id);
+                    else this.core.hangupAllCalls();
+                }
+                // 6. HOLD / UNHOLD (Active Call)
+                else if (type === 'sokrat.voice.hold' || type === 'hold') {
+                    if (activeCall && !activeCall.isHold) this.core.toggleHold(activeCall.id);
+                }
+                else if (type === 'sokrat.voice.unhold' || type === 'sokrat.voice.resume' || type === 'unhold' || type === 'resume') {
+                    if (activeCall && activeCall.isHold) this.core.toggleHold(activeCall.id);
+                }
+                else if (type === 'sokrat.voice.toggle_hold' || type === 'toggle_hold') {
+                    if (activeCall) this.core.toggleHold(activeCall.id);
+                }
+                // 7. MUTE / UNMUTE (Active Call)
+                else if (type === 'sokrat.voice.mute' || type === 'mute') {
+                    if (activeCall && !activeCall.isMuted) this.core.toggleMute(activeCall.id);
+                }
+                else if (type === 'sokrat.voice.unmute' || type === 'unmute') {
+                    if (activeCall && activeCall.isMuted) this.core.toggleMute(activeCall.id);
+                }
+                else if (type === 'sokrat.voice.toggle_mute' || type === 'toggle_mute') {
+                    if (activeCall) this.core.toggleMute(activeCall.id);
+                }
+                // 8. DTMF (Active Call)
+                else if (type === 'sokrat.voice.dtmf' || type === 'sokrat.voice.send_dtmf' || type === 'dtmf' || type === 'send_dtmf') {
+                    const digits = String(data.payload?.digits || data.digits || data.digit || '').trim();
+                    if (activeCall && digits) {
+                        for (const d of digits) this.core.sendDTMF(activeCall.id, d);
+                    }
+                }
+                // 9. TRANSFER / REDIRECT (Active Call)
+                else if (type === 'sokrat.voice.transfer' || type === 'transfer' || type === 'redirect' || type === 'forward') {
+                    const target = sanitize(data.payload?.destination || data.destination || data.target || data.number);
+                    if (activeCall && target) this.core.transferCall(activeCall.id, target);
+                }
+                // 10. DND (Idle / Universal)
+                else if (type === 'sokrat.voice.dnd' || type === 'sokrat.voice.set_dnd' || type === 'dnd' || type === 'set_dnd') {
+                    const enabled = data.payload ? Boolean(data.payload.enabled) : Boolean(data.enabled);
+                    this.toggleDnd(enabled);
+                }
+                // 11. GET_STATE (Universal Query)
+                else if (type === 'sokrat.voice.get_state' || type === 'get_state' || type === 'state') {
+                    let stateName = 'IDLE';
+                    if (incomingCall) stateName = 'RINGING_INCOMING';
+                    else if (outgoingRingingCall) stateName = 'RINGING_OUTGOING';
+                    else if (activeCall) stateName = activeCall.isHold ? 'HELD' : 'IN_CALL';
+
+                    const statePayload = {
+                        version: 1,
+                        type: 'sokrat.voice.state',
+                        payload: {
+                            state: stateName,
+                            regState: this.core.regState,
+                            extension: this.core.currentExtension || '',
+                            activeCallsCount: activeCalls.length,
+                            activeCall: activeCall ? {
+                                id: activeCall.id,
+                                target: activeCall.target,
+                                direction: activeCall.direction,
+                                duration: activeCall.answerTime ? Math.round((Date.now() - activeCall.answerTime) / 1000) : 0,
+                                isMuted: Boolean(activeCall.isMuted),
+                                isHold: Boolean(activeCall.isHold)
+                            } : null
+                        }
+                    };
+                    if (source && typeof source.postMessage === 'function') {
+                        source.postMessage(statePayload, origin || '*');
+                    }
+                    window.postMessage(statePayload, '*');
+                }
+            };
+
+            // 4. Cross-Window postMessage Listener (for CRM iframes, popups & host windows)
             window.addEventListener('message', (event) => {
                 const isAllowedOrigin = event.origin === window.location.origin ||
                     /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(event.origin) ||
@@ -4710,47 +4815,15 @@
                     console.warn('[Softphone Security] Blocked cross-origin postMessage from:', event.origin);
                     return;
                 }
-                const data = event.data;
-                if (!data) return;
-                if (data.type === 'sokrat.voice.dial' || data.type === 'CLICK_TO_CALL' || data.type === 'DIAL' || data.action === 'call' || data.action === 'dial') {
-                    const raw = data.payload?.phone || data.number || data.phone || data.target || data.ext;
-                    const autoCall = data.payload ? (data.payload.autoCall !== false) : (data.autoCall !== false && data.auto !== false);
-                    const target = sanitize(raw);
-                    if (target) {
-                        this.clickToCall(target, autoCall);
-                    }
-                } else if (data.type === 'sokrat.voice.hangup' || data.type === 'HANGUP' || data.action === 'hangup') {
-                    const activeCall = Array.from(this.core.activeCalls.values())[0];
-                    if (activeCall) {
-                        this.core.hangupCall(activeCall.id);
-                    }
-                } else if (data.type === 'sokrat.voice.toggle_mute' || data.type === 'MUTE' || data.action === 'mute' || data.action === 'toggle_mute') {
-                    const activeCall = Array.from(this.core.activeCalls.values())[0];
-                    if (activeCall) {
-                        this.core.toggleMute(activeCall.id);
-                    }
-                }
+                handleAction(event.data, event.source, event.origin);
             });
-            // 4. BroadcastChannel Listener (for multi-tab / Sokrat VoIP dashboard integration)
+
+            // 5. BroadcastChannel Listener (for multi-tab / Sokrat VoIP dashboard integration)
             try {
                 if (typeof BroadcastChannel !== 'undefined') {
                     const bus = new BroadcastChannel('sokrat_softphone_bus');
                     bus.addEventListener('message', (event) => {
-                        const data = event.data;
-                        if (data && (data.type === 'CLICK_TO_CALL' || data.type === 'DIAL')) {
-                            const raw = data.number || data.phone || data.target;
-                            const autoCall = data.autoCall !== false;
-                            const target = sanitize(raw);
-                            if (target) {
-                                this.clickToCall(target, autoCall);
-                            }
-                        } else if (data && (data.type === 'sokrat.voice.hangup' || data.type === 'HANGUP' || data.action === 'hangup')) {
-                            const activeCall = Array.from(this.core.activeCalls.values())[0];
-                            if (activeCall) this.core.hangupCall(activeCall.id);
-                        } else if (data && (data.type === 'sokrat.voice.toggle_mute' || data.type === 'MUTE' || data.action === 'mute')) {
-                            const activeCall = Array.from(this.core.activeCalls.values())[0];
-                            if (activeCall) this.core.toggleMute(activeCall.id);
-                        }
+                        handleAction(event.data);
                     });
                 }
             } catch (_) {}

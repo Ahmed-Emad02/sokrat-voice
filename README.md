@@ -38,6 +38,16 @@ sudo systemctl enable --now sokrat-softphone.service
 
 ---
 
+## CRM Integration & REST API
+
+Sokrat Voice features a complete dual-layer integration engine for CRM platforms:
+* **Server-Side REST API**: Call origination, answer, reject, cancel, hangup, hold, mute, DTMF, transfer, and recording.
+* **Client-Side Iframe Bridge**: DOM `postMessage` and `BroadcastChannel` controls for embedded softphone widgets.
+
+👉 **[Read the Full CRM Telephony Integration & API Documentation (CRM_API_DOCUMENTATION.md)](CRM_API_DOCUMENTATION.md)**
+
+---
+
 ## Running Tests
 
 ```bash

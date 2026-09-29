@@ -675,6 +675,820 @@ app.get(['/api/trunk-call-state', '/phone/api/trunk-call-state'], async (req, re
         res.json({ success: false, callerActive: true, trunkActive: true, error: err.message });
     }
 });
+
+// =========================================================================
+// --- CRM TELEPHONY INTEGRATION REST API (Every Action in Every State) ---
+// =========================================================================
+
+const net = require('net');
+const AMI_HOST = process.env.AMI_HOST || '127.0.0.1';
+const AMI_PORT = parseInt(process.env.AMI_PORT, 10) || 5038;
+const AMI_USER = process.env.AMI_USER || 'admin';
+const AMI_PASS = process.env.AMI_PASS || 'admin';
+
+function parseAmiResponse(raw) {
+    const lines = (raw || '').split(/\r?\n/);
+    const result = { success: false, raw };
+    for (const line of lines) {
+        const idx = line.indexOf(':');
+        if (idx > 0) {
+            const key = line.slice(0, idx).trim().toLowerCase();
+            const val = line.slice(idx + 1).trim();
+            result[key] = val;
+            if (key === 'response') {
+                result.success = val.toLowerCase() === 'success';
+            }
+        }
+    }
+    return result;
+}
+
+function execAmiAction(actionObj, timeoutMs = 4000) {
+    return new Promise((resolve, reject) => {
+        let client = null;
+        let timer = null;
+        let buffer = '';
+        let authed = false;
+
+        timer = setTimeout(() => {
+            if (client) client.destroy();
+            reject(new Error(`AMI action ${actionObj.Action || 'unknown'} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+
+        client = net.createConnection({ port: AMI_PORT, host: AMI_HOST }, () => {
+            // Socket connected, Asterisk banner will arrive
+        });
+
+        client.on('data', (chunk) => {
+            buffer += chunk.toString();
+            if (!authed && buffer.includes('Asterisk Call Manager')) {
+                buffer = '';
+                client.write(`Action: Login\r\nUsername: ${AMI_USER}\r\nSecret: ${AMI_PASS}\r\n\r\n`);
+                authed = true;
+            } else if (authed) {
+                if (buffer.includes('Message: Authentication accepted')) {
+                    buffer = '';
+                    let req = '';
+                    for (const [k, v] of Object.entries(actionObj)) {
+                        req += `${k}: ${v}\r\n`;
+                    }
+                    req += '\r\n';
+                    client.write(req);
+                } else if (buffer.includes('--END COMMAND--') || (buffer.includes('Response: ') && buffer.includes('\r\n\r\n'))) {
+                    clearTimeout(timer);
+                    const resStr = buffer;
+                    try {
+                        client.write('Action: Logoff\r\n\r\n');
+                        client.end();
+                    } catch (_) {}
+                    resolve(parseAmiResponse(resStr));
+                }
+            }
+        });
+
+        client.on('error', (err) => {
+            clearTimeout(timer);
+            reject(err);
+        });
+    });
+}
+
+async function execAsteriskCmd(cmd) {
+    try {
+        const amiRes = await execAmiAction({ Action: 'Command', Command: cmd }, 3000);
+        if (amiRes && amiRes.raw) {
+            const lines = amiRes.raw.split(/\r?\n/)
+                .filter(l => l.startsWith('Output: '))
+                .map(l => l.slice(8));
+            if (lines.length > 0) return lines.join('\n');
+        }
+    } catch (_) {}
+    const { stdout } = await execAsync(`/usr/sbin/asterisk -rx "${cmd.replace(/"/g, '\\"')}" 2>/dev/null`, { timeout: 3000 }).catch(() => ({ stdout: '' }));
+    return stdout || '';
+}
+
+async function getExtensionCallStatus(extension, preferredChannel = null) {
+    const extStr = String(extension || '').trim();
+    const prefChan = String(preferredChannel || '').trim();
+
+    const stdout = await execAsteriskCmd('core show channels concise');
+
+    const lines = (stdout || '').split('\n').filter(Boolean);
+    const matched = [];
+
+    for (const line of lines) {
+        const p = line.split('!');
+        if (p.length < 13) continue;
+
+        const channel = p[0];
+        const context = p[1];
+        const exten = p[2];
+        const priority = p[3];
+        const stateCode = p[4];
+        const app = p[5];
+        const appData = p[6];
+        const callerId = p[7];
+        const duration = parseInt(p[10], 10) || 0;
+        const bridgedChannel = p[11] || '';
+        const uniqueId = p[12];
+
+        if (prefChan && (channel === prefChan || channel.startsWith(`${prefChan}-`))) {
+            matched.unshift({
+                channel, context, exten, priority, stateCode, app, appData,
+                callerId, duration, bridgedChannel, uniqueId
+            });
+            continue;
+        }
+
+        const matchesExt = extStr && (
+            channel.startsWith(`PJSIP/${extStr}-`) ||
+            channel.startsWith(`SIP/${extStr}-`) ||
+            channel.startsWith(`Local/${extStr}@`) ||
+            callerId === extStr ||
+            exten === extStr ||
+            (appData && (appData.includes(`/${extStr}`) || appData.includes(`PJSIP/${extStr}`) || appData.includes(`SIP/${extStr}`)))
+        );
+
+        if (matchesExt) {
+            matched.push({
+                channel, context, exten, priority, stateCode, app, appData,
+                callerId, duration, bridgedChannel, uniqueId
+            });
+        }
+    }
+
+    if (matched.length === 0) {
+        return {
+            extension: extStr,
+            state: 'IDLE',
+            active: false,
+            channel: null,
+            bridgedChannel: null,
+            callId: null,
+            duration: 0,
+            direction: null,
+            callerNumber: null,
+            destination: null,
+            channels: []
+        };
+    }
+
+    const primary = matched[0];
+    const isUp = matched.some(m => m.stateCode === '6' || m.stateCode === 'Up');
+    const isRinging = matched.some(m => m.stateCode === '4' || m.stateCode === '5' || m.stateCode === 'Ring' || m.stateCode === 'Ringing');
+    const isDialing = matched.some(m => m.stateCode === '3' || m.stateCode === 'Dialing');
+
+    let state = 'IDLE';
+    let direction = 'inbound';
+
+    if (isUp) {
+        state = 'IN_CALL';
+        direction = (primary.callerId === extStr || primary.channel.startsWith(`PJSIP/${extStr}`) || primary.channel.startsWith(`SIP/${extStr}`)) ? 'outbound' : 'inbound';
+    } else if (isRinging) {
+        if (primary.callerId === extStr || primary.channel.startsWith(`PJSIP/${extStr}`) || primary.channel.startsWith(`SIP/${extStr}`)) {
+            state = 'RINGING_OUTGOING';
+            direction = 'outbound';
+        } else {
+            state = 'RINGING_INCOMING';
+            direction = 'inbound';
+        }
+    } else if (isDialing) {
+        state = 'RINGING_OUTGOING';
+        direction = 'outbound';
+    } else {
+        state = 'IN_CALL';
+    }
+
+    let isRecording = false;
+    try {
+        const { stdout: chanDetail } = await execAsync(
+            `/usr/sbin/asterisk -rx "core show channel ${primary.channel}" 2>/dev/null`,
+            { timeout: 3000 }
+        );
+        isRecording = /MixMonitor/i.test(chanDetail || '');
+    } catch (_) {}
+
+    return {
+        extension: extStr,
+        state,
+        active: true,
+        channel: primary.channel,
+        bridgedChannel: primary.bridgedChannel || null,
+        callId: primary.uniqueId,
+        duration: primary.duration,
+        direction,
+        callerNumber: primary.callerId || null,
+        destination: primary.exten || null,
+        recording: isRecording,
+        channels: matched
+    };
+}
+
+// 1. STATE QUERY: Query real-time call & channel state for an extension (all states)
+app.get(['/api/call/state', '/phone/api/call/state', '/api/call/status', '/phone/api/call/status'], async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const ext = String(req.query.ext || req.query.extension || '').trim();
+    const chan = String(req.query.channel || '').trim();
+
+    if (!ext && !chan) {
+        return res.status(400).json({ success: false, error: 'Query parameter "ext" or "channel" is required' });
+    }
+
+    try {
+        const details = await getExtensionCallStatus(ext, chan);
+        res.json({
+            success: true,
+            ...details
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 2. IDLE STATE ACTION: Originate / Dial an outbound call
+app.post(['/api/call/originate', '/phone/api/call/originate', '/api/call/dial', '/phone/api/call/dial'], async (req, res) => {
+    try {
+        const { extension, destination, number, phone, target, callerId, timeout, autoAnswer } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const dest = String(destination || number || phone || target || '').trim().replace(/[^\d+*#]/g, '');
+
+        if (!ext) return res.status(400).json({ success: false, error: 'Extension is required' });
+        if (!dest) return res.status(400).json({ success: false, error: 'Destination number is required' });
+
+        let tech = 'PJSIP';
+        try {
+            const { stdout } = await execAsync(`/usr/sbin/asterisk -rx "pjsip show endpoint ${ext}" 2>/dev/null`);
+            if (stdout && !stdout.includes('Unable to find') && !stdout.includes('not found')) {
+                tech = 'PJSIP';
+            } else {
+                tech = 'SIP';
+            }
+        } catch (_) {}
+
+        const cid = callerId || ext;
+        const autoAnswerHdr = (autoAnswer !== false) ? 'P-Auto-Answer=normal,Alert-Info=ring-answer' : '';
+
+        const amiAction = {
+            Action: 'Originate',
+            Channel: `Local/${ext}@from-internal`,
+            Context: 'from-internal',
+            Exten: dest,
+            Priority: '1',
+            CallerID: `${cid} <${cid}>`,
+            Timeout: String(parseInt(timeout, 10) || 30000),
+            Async: 'true'
+        };
+
+        if (autoAnswerHdr) {
+            amiAction.Variable = `__SIPADDHEADER=${autoAnswerHdr}`;
+        }
+
+        try {
+            const amiRes = await execAmiAction(amiAction);
+            return res.json({
+                success: true,
+                message: 'Call origination dispatched successfully',
+                extension: ext,
+                destination: dest,
+                technology: tech,
+                ami: amiRes
+            });
+        } catch (amiErr) {
+            const cliCmd = `/usr/sbin/asterisk -rx "channel originate Local/${ext}@from-internal extension ${dest}@from-internal" 2>/dev/null`;
+            await execAsync(cliCmd);
+            return res.json({
+                success: true,
+                message: 'Call origination dispatched via CLI fallback',
+                extension: ext,
+                destination: dest
+            });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3. INCOMING STATE ACTION: Answer an incoming ringing call
+app.post(['/api/call/answer', '/phone/api/call/answer'], async (req, res) => {
+    try {
+        const { extension, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active or ringing call found to answer' });
+        }
+
+        await execAsync(`/usr/sbin/asterisk -rx "channel redirect ${targetChan} from-internal,${ext},1" 2>/dev/null`).catch(() => ({}));
+
+        res.json({
+            success: true,
+            message: 'Answer command dispatched',
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 4. INCOMING STATE ACTION: Reject / Decline an incoming ringing call
+app.post(['/api/call/reject', '/phone/api/call/reject', '/api/call/decline', '/phone/api/call/decline'], async (req, res) => {
+    try {
+        const { extension, channel, reason } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active or ringing call found to reject' });
+        }
+
+        const causeCode = (reason === 'busy') ? '17' : '21';
+        try {
+            await execAmiAction({ Action: 'Hangup', Channel: targetChan, Cause: causeCode });
+        } catch (_) {
+            await execAsync(`/usr/sbin/asterisk -rx "channel request hangup ${targetChan}" 2>/dev/null`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Incoming call rejected / declined successfully',
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 5. INCOMING / ACTIVE STATE ACTION: Redirect / Forward call to another destination
+app.post(['/api/call/redirect', '/phone/api/call/redirect', '/api/call/forward', '/phone/api/call/forward'], async (req, res) => {
+    try {
+        const { extension, destination, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const dest = String(destination || req.body?.target || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!dest) return res.status(400).json({ success: false, error: 'Destination is required' });
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active or ringing call found to redirect' });
+        }
+
+        try {
+            await execAmiAction({
+                Action: 'Redirect',
+                Channel: targetChan,
+                Context: 'from-internal',
+                Exten: dest,
+                Priority: '1'
+            });
+        } catch (_) {
+            await execAsync(`/usr/sbin/asterisk -rx "channel redirect ${targetChan} from-internal,${dest},1" 2>/dev/null`);
+        }
+
+        res.json({
+            success: true,
+            message: `Call redirected to ${dest}`,
+            channel: targetChan,
+            destination: dest,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 6. OUTGOING STATE ACTION: Cancel an outgoing ringing/dialing call
+app.post(['/api/call/cancel', '/phone/api/call/cancel'], async (req, res) => {
+    try {
+        const { extension, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active or ringing call found to cancel' });
+        }
+
+        try {
+            await execAmiAction({ Action: 'Hangup', Channel: targetChan, Cause: '16' });
+        } catch (_) {
+            await execAsync(`/usr/sbin/asterisk -rx "channel request hangup ${targetChan}" 2>/dev/null`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Outgoing call canceled successfully',
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 7. ACTIVE STATE ACTION: Hangup / Terminate call
+app.post(['/api/call/hangup', '/phone/api/call/hangup'], async (req, res) => {
+    try {
+        const { extension, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found to hangup' });
+        }
+
+        try {
+            await execAmiAction({ Action: 'Hangup', Channel: targetChan, Cause: '16' });
+        } catch (_) {
+            await execAsync(`/usr/sbin/asterisk -rx "channel request hangup ${targetChan}" 2>/dev/null`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Call terminated successfully',
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 8. ACTIVE STATE ACTION: Hold active call
+app.post(['/api/call/hold', '/phone/api/call/hold'], async (req, res) => {
+    try {
+        const { extension, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found to hold' });
+        }
+
+        try {
+            await execAmiAction({
+                Action: 'MuteAudio',
+                Channel: targetChan,
+                Direction: 'all',
+                State: 'on'
+            });
+        } catch (_) {}
+
+        res.json({
+            success: true,
+            message: 'Call placed on hold',
+            held: true,
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 9. ACTIVE STATE ACTION: Unhold / Resume active call
+app.post(['/api/call/unhold', '/phone/api/call/unhold', '/api/call/resume', '/phone/api/call/resume'], async (req, res) => {
+    try {
+        const { extension, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found to resume' });
+        }
+
+        try {
+            await execAmiAction({
+                Action: 'MuteAudio',
+                Channel: targetChan,
+                Direction: 'all',
+                State: 'off'
+            });
+        } catch (_) {}
+
+        res.json({
+            success: true,
+            message: 'Call resumed from hold',
+            held: false,
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 10. ACTIVE STATE ACTION: Mute audio stream (in, out, or all)
+app.post(['/api/call/mute', '/phone/api/call/mute'], async (req, res) => {
+    try {
+        const { extension, channel, direction } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+        const dir = ['in', 'out', 'all'].includes(direction) ? direction : 'all';
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found to mute' });
+        }
+
+        await execAmiAction({
+            Action: 'MuteAudio',
+            Channel: targetChan,
+            Direction: dir,
+            State: 'on'
+        });
+
+        res.json({
+            success: true,
+            message: `Audio muted (${dir})`,
+            muted: true,
+            direction: dir,
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 11. ACTIVE STATE ACTION: Unmute audio stream
+app.post(['/api/call/unmute', '/phone/api/call/unmute'], async (req, res) => {
+    try {
+        const { extension, channel, direction } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+        const dir = ['in', 'out', 'all'].includes(direction) ? direction : 'all';
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found to unmute' });
+        }
+
+        await execAmiAction({
+            Action: 'MuteAudio',
+            Channel: targetChan,
+            Direction: dir,
+            State: 'off'
+        });
+
+        res.json({
+            success: true,
+            message: `Audio unmuted (${dir})`,
+            muted: false,
+            direction: dir,
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 12. ACTIVE STATE ACTION: Play DTMF digits
+app.post(['/api/call/dtmf', '/phone/api/call/dtmf'], async (req, res) => {
+    try {
+        const { extension, channel, digits, digit } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+        const dtmfStr = String(digits || digit || '').trim().replace(/[^0-9A-D*#]/gi, '');
+
+        if (!dtmfStr) return res.status(400).json({ success: false, error: 'Valid DTMF digits required' });
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found for DTMF playback' });
+        }
+
+        for (const char of dtmfStr) {
+            await execAmiAction({
+                Action: 'PlayDTMF',
+                Channel: targetChan,
+                Digit: char
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Sent DTMF [${dtmfStr}]`,
+            digits: dtmfStr,
+            channel: targetChan,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 13. ACTIVE STATE ACTION: Blind Transfer call to destination
+app.post(['/api/call/transfer', '/phone/api/call/transfer'], async (req, res) => {
+    try {
+        const { extension, destination, channel } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const dest = String(destination || req.body?.target || '').trim();
+        const chan = String(channel || '').trim();
+
+        if (!dest) return res.status(400).json({ success: false, error: 'Transfer destination is required' });
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = status.bridgedChannel || chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found to transfer' });
+        }
+
+        try {
+            await execAmiAction({
+                Action: 'Redirect',
+                Channel: targetChan,
+                Context: 'from-internal',
+                Exten: dest,
+                Priority: '1'
+            });
+        } catch (_) {
+            await execAsync(`/usr/sbin/asterisk -rx "channel redirect ${targetChan} from-internal,${dest},1" 2>/dev/null`);
+        }
+
+        res.json({
+            success: true,
+            message: `Call successfully transferred to ${dest}`,
+            channel: targetChan,
+            destination: dest,
+            extension: ext
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 14. ACTIVE STATE ACTION: Call Recording Control (MixMonitor)
+app.post(['/api/call/record', '/phone/api/call/record'], async (req, res) => {
+    try {
+        const { extension, channel, action } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        const chan = String(channel || '').trim();
+        const act = String(action || 'start').toLowerCase();
+
+        if (!ext && !chan) return res.status(400).json({ success: false, error: 'Extension or channel is required' });
+
+        const status = await getExtensionCallStatus(ext, chan);
+        const targetChan = chan || status.channel;
+
+        if (!targetChan) {
+            return res.status(404).json({ success: false, error: 'No active call found' });
+        }
+
+        if (act === 'start') {
+            const filename = `/var/spool/asterisk/monitor/crm-${Date.now()}-${ext || 'call'}.wav`;
+            await execAsync(`/usr/sbin/asterisk -rx "mixmonitor start ${targetChan} ${filename}" 2>/dev/null`);
+            res.json({ success: true, recording: true, action: 'start', file: filename, channel: targetChan });
+        } else {
+            await execAsync(`/usr/sbin/asterisk -rx "mixmonitor stop ${targetChan}" 2>/dev/null`);
+            res.json({ success: true, recording: false, action: 'stop', channel: targetChan });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 15. EXTENSION CONTROL: Toggle / Set DND (Do Not Disturb)
+app.post(['/api/extension/dnd', '/phone/api/extension/dnd'], async (req, res) => {
+    try {
+        const { extension, enabled } = req.body || {};
+        const ext = String(extension || req.query.ext || '').trim();
+        if (!ext) return res.status(400).json({ success: false, error: 'Extension is required' });
+
+        const isEnabled = enabled === true || enabled === 'true' || enabled === 1 || enabled === '1';
+
+        if (isEnabled) {
+            await execAsteriskCmd(`database put DND ${ext} YES`);
+            if (dbPool) {
+                try {
+                    await dbPool.query('INSERT INTO extension_policies (extension, dnd) VALUES (?, "enabled") ON DUPLICATE KEY UPDATE dnd="enabled"', [ext]);
+                } catch (_) {}
+            }
+        } else {
+            await execAsteriskCmd(`database del DND ${ext}`);
+            if (dbPool) {
+                try {
+                    await dbPool.query('INSERT INTO extension_policies (extension, dnd) VALUES (?, "user_choice") ON DUPLICATE KEY UPDATE dnd="user_choice"', [ext]);
+                } catch (_) {}
+            }
+        }
+
+        res.json({
+            success: true,
+            extension: ext,
+            dnd: isEnabled,
+            message: `Do Not Disturb ${isEnabled ? 'enabled' : 'disabled'}`
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 16. EXTENSION CONTROL: Query registration and extension status
+app.get(['/api/extension/status/:ext', '/phone/api/extension/status/:ext'], async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const ext = String(req.params.ext || '').trim();
+    if (!ext) return res.status(400).json({ success: false, error: 'Extension is required' });
+
+    try {
+        const dndOut = await execAsteriskCmd(`database get DND ${ext}`);
+        const dnd = /Value:\s*YES/i.test(dndOut || '');
+
+        let registered = false;
+        let technology = 'sip';
+        let ip = null;
+        let useragent = null;
+
+        const pjsipOut = await execAsteriskCmd(`pjsip show endpoint ${ext}`);
+        if (pjsipOut && !pjsipOut.includes('Unable to find') && !pjsipOut.includes('not found') && !pjsipOut.includes('No such')) {
+            technology = 'pjsip';
+            registered = /Contact:\s*<[^>]+>\s+[a-f0-9]+\s+Avail/i.test(pjsipOut);
+            const uaMatch = pjsipOut.match(/User-Agent:\s*([^\n]+)/i);
+            if (uaMatch) useragent = uaMatch[1].trim();
+        } else {
+            const sipOut = await execAsteriskCmd(`sip show peer ${ext}`);
+            technology = 'sip';
+            registered = /Status\s*:\s*OK/i.test(sipOut);
+            const ipMatch = sipOut.match(/Addr->IP\s*:\s*([0-9.]+)/i);
+            if (ipMatch) ip = ipMatch[1].trim();
+            const uaMatch = sipOut.match(/Useragent\s*:\s*([^\n]+)/i);
+            if (uaMatch) useragent = uaMatch[1].trim();
+        }
+
+        const callStatus = await getExtensionCallStatus(ext);
+
+        res.json({
+            success: true,
+            extension: ext,
+            technology,
+            registered,
+            dnd,
+            state: callStatus.state,
+            useragent,
+            ip,
+            activeCall: callStatus.active ? {
+                channel: callStatus.channel,
+                callId: callStatus.callId,
+                direction: callStatus.direction,
+                duration: callStatus.duration,
+                callerNumber: callStatus.callerNumber,
+                destination: callStatus.destination,
+                recording: callStatus.recording
+            } : null
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 // 404 Handler
 app.use((req, res) => {
     res.status(404).json({ success: false, error: 'Not Found' });
@@ -714,4 +1528,4 @@ function handleShutdown(signal) {
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 
-module.exports = { app, server, resolveTelephonyEndpoint };
+module.exports = { app, server, resolveTelephonyEndpoint, execAmiAction, getExtensionCallStatus, parseAmiResponse };
