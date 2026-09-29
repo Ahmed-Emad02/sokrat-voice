@@ -1751,6 +1751,23 @@
             this.onPresetChanged();
         }
 
+        selectPresetByExtension(ext) {
+            if (!ext) return;
+            const clean = String(ext).trim();
+            const presets = this.getPresets();
+            const found = presets.find(p => String(p.extension) === clean || String(p.id) === `ext_${clean}` || String(p.id) === clean);
+            if (found && this.dom.presetSelect) {
+                this.dom.presetSelect.value = found.id;
+                this.onPresetChanged();
+            } else if (this.dom.presetSelect) {
+                const opt = Array.from(this.dom.presetSelect.options).find(o => o.value === `ext_${clean}` || o.value === clean || o.textContent.includes(clean));
+                if (opt) {
+                    this.dom.presetSelect.value = opt.value;
+                    this.onPresetChanged();
+                }
+            }
+        }
+
         getSelectedPreset() {
             if (!this.dom.presetSelect) return null;
             const id = this.dom.presetSelect.value;
@@ -2344,7 +2361,14 @@
                 const msg = {
                     version: 1,
                     type: 'sokrat.voice.incoming',
-                    payload: { phone: callEntry?.target || 'Unknown', callId: callEntry?.id }
+                    payload: {
+                        phone: callEntry?.target || 'Unknown',
+                        callerName: callEntry?.displayName || callEntry?.callerName || '',
+                        callId: callEntry?.id,
+                        direction: 'incoming',
+                        extension: this.core.currentExtension || '',
+                        timestamp: new Date().toISOString()
+                    }
                 };
                 if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
                 window.postMessage(msg, '*');
@@ -2356,7 +2380,15 @@
                 const msg = {
                     version: 1,
                     type: 'sokrat.voice.call_state',
-                    payload: { state: 'ringing', phone: callEntry?.target || '' }
+                    payload: {
+                        state: 'ringing',
+                        phone: callEntry?.target || '',
+                        callerName: callEntry?.displayName || callEntry?.callerName || '',
+                        callId: callEntry?.id,
+                        direction: callEntry?.direction || 'outgoing',
+                        extension: this.core.currentExtension || '',
+                        timestamp: new Date().toISOString()
+                    }
                 };
                 if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
                 window.postMessage(msg, '*');
@@ -2373,8 +2405,12 @@
                     payload: {
                         state: 'in_call',
                         phone: callEntry?.target || '',
+                        callerName: callEntry?.displayName || callEntry?.callerName || '',
                         callId: callEntry?.id,
-                        startTime: startTimeMs
+                        direction: callEntry?.direction || 'outgoing',
+                        extension: this.core.currentExtension || '',
+                        startTime: startTimeMs,
+                        timestamp: new Date().toISOString()
                     }
                 };
                 if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
@@ -2393,7 +2429,15 @@
                 const msg = {
                     version: 1,
                     type: 'sokrat.voice.call_state',
-                    payload: { state: 'ended', callId: data?.callId }
+                    payload: {
+                        state: 'ended',
+                        callId: data?.callId,
+                        phone: data?.target || '',
+                        durationSec: data?.durationSec || 0,
+                        outcome: data?.outcome || 'unknown',
+                        extension: this.core.currentExtension || '',
+                        timestamp: new Date().toISOString()
+                    }
                 };
                 if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*');
                 window.postMessage(msg, '*');
@@ -4664,12 +4708,41 @@
                 }
             };
 
-            // 1. Process URL search parameters (?call=101 or ?dial=101)
+            // 1. Process URL search parameters (?call=101, ?ext=150, ?allowedOrigin=...)
             const handleUrlParams = () => {
                 const params = new URLSearchParams(window.location.search);
                 const rawCall = params.get('call') || params.get('number') || params.get('phone');
                 const rawDial = params.get('dial');
                 const auto = params.get('auto') === '1' || params.get('auto') === 'true' || Boolean(rawCall);
+
+                // Whitelist allowed CRM origin if provided in query string
+                const allowedOrig = params.get('allowedOrigin') || params.get('origin') || params.get('crmOrigin');
+                if (allowedOrig) {
+                    this.allowedOrigins = this.allowedOrigins || [];
+                    if (!this.allowedOrigins.includes(allowedOrig)) {
+                        this.allowedOrigins.push(allowedOrig);
+                    }
+                }
+
+                // Automatic extension selection and WebRTC connection from CRM URL parameters
+                const targetExt = params.get('ext') || params.get('extension');
+                const targetSecret = params.get('secret') || params.get('password');
+                const autoConnect = params.get('autoConnect') === '1' || params.get('autoConnect') === 'true' || params.get('autoLogin') === '1' || params.get('autoLogin') === 'true';
+
+                if (targetExt) {
+                    this.selectPresetByExtension(targetExt);
+                    if (targetSecret && this.dom.passwordInput) {
+                        this.dom.passwordInput.value = targetSecret;
+                        this.lastSessionPassword = targetSecret;
+                    }
+                    if (autoConnect && targetSecret && this.dom.connectBtn && this.core.regState === 'DISCONNECTED') {
+                        setTimeout(() => {
+                            if (this.dom.connectBtn && this.core.regState === 'DISCONNECTED') {
+                                this.dom.connectBtn.click();
+                            }
+                        }, 250);
+                    }
+                }
 
                 const target = sanitize(rawCall || rawDial);
                 if (target) {
@@ -4773,7 +4846,31 @@
                     const enabled = data.payload ? Boolean(data.payload.enabled) : Boolean(data.enabled);
                     this.toggleDnd(enabled);
                 }
-                // 11. GET_STATE (Universal Query)
+                // 11. LOGIN / CONNECT (From CRM Parent Window)
+                else if (type === 'sokrat.voice.login' || type === 'login' || type === 'connect') {
+                    const ext = data.payload?.extension || data.payload?.ext || data.extension || data.ext;
+                    const secret = data.payload?.secret || data.payload?.password || data.secret || data.password;
+                    const auto = data.payload ? (data.payload.autoConnect !== false) : (data.autoConnect !== false);
+                    if (ext) this.selectPresetByExtension(ext);
+                    if (secret && this.dom.passwordInput) {
+                        this.dom.passwordInput.value = secret;
+                        this.lastSessionPassword = secret;
+                    }
+                    if (auto && this.dom.connectBtn && this.core.regState === 'DISCONNECTED') {
+                        setTimeout(() => {
+                            if (this.dom.connectBtn && this.core.regState === 'DISCONNECTED') {
+                                this.dom.connectBtn.click();
+                            }
+                        }, 100);
+                    }
+                }
+                // 12. LOGOUT / DISCONNECT (From CRM Parent Window)
+                else if (type === 'sokrat.voice.logout' || type === 'logout' || type === 'disconnect') {
+                    if (this.core.regState === 'REGISTERED' && this.dom.connectBtn) {
+                        this.dom.connectBtn.click();
+                    }
+                }
+                // 13. GET_STATE (Universal Query)
                 else if (type === 'sokrat.voice.get_state' || type === 'get_state' || type === 'state') {
                     let stateName = 'IDLE';
                     if (incomingCall) stateName = 'RINGING_INCOMING';
@@ -4808,8 +4905,9 @@
             // 4. Cross-Window postMessage Listener (for CRM iframes, popups & host windows)
             window.addEventListener('message', (event) => {
                 const isAllowedOrigin = event.origin === window.location.origin ||
+                    event.source === window.parent ||
                     /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(event.origin) ||
-                    (this.allowedOrigins && this.allowedOrigins.includes(event.origin));
+                    (this.allowedOrigins && (this.allowedOrigins.includes(event.origin) || this.allowedOrigins.includes('*')));
 
                 if (!isAllowedOrigin) {
                     console.warn('[Softphone Security] Blocked cross-origin postMessage from:', event.origin);

@@ -480,13 +480,23 @@ When Sokrat Voice is embedded inside your web CRM, your CRM frontend can control
 
 ### 4.1 Embedding in an Iframe
 ```html
+<!-- Auto-authenticated single-sign-on (SSO) iframe -->
 <iframe 
     id="sokratPhone" 
-    src="https://pbx.yourcompany.com/phone/?lang=en" 
+    src="https://pbx.yourcompany.com/phone/?lang=en&ext=150&secret=sss333&autoConnect=true&origin=https://crm.yourcompany.com" 
     allow="microphone; autoplay" 
-    style="width: 380px; height: 560px; border: none; border-radius: 12px;">
+    style="width: 380px; height: 560px; border: none; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);">
 </iframe>
 ```
+
+#### URL Query Parameters:
+| Parameter | Description |
+| :--- | :--- |
+| `ext` / `extension` | Preselects or provisions this extension (e.g. `150`). |
+| `secret` / `password` | Extension password/secret. |
+| `autoConnect` | When set to `true` or `1`, automatically logs in to WebRTC on mount. |
+| `origin` / `allowedOrigin` | Whitelists your CRM domain for cross-origin `postMessage` control. |
+| `lang` | Language interface (`en` or `ar` for native RTL). |
 
 ---
 
@@ -495,6 +505,8 @@ Send messages to the iframe using `iframeEl.contentWindow.postMessage(message, '
 
 | Action | Payload Syntax |
 | :--- | :--- |
+| **Agent Login / SSO** | `{ type: "sokrat.voice.login", extension: "150", secret: "sss333", autoConnect: true }` |
+| **Agent Logout** | `{ type: "sokrat.voice.logout" }` |
 | **Dial / Click-to-Call** | `{ type: "sokrat.voice.dial", number: "01011719380", autoCall: true }` |
 | **Answer Call** | `{ type: "sokrat.voice.answer" }` |
 | **Reject / Decline** | `{ type: "sokrat.voice.reject" }` |
@@ -512,7 +524,7 @@ Send messages to the iframe using `iframeEl.contentWindow.postMessage(message, '
 ---
 
 ### 4.3 Outbound State Events
-Listen in your CRM window for real-time events emitted by Sokrat Voice:
+Listen in your CRM window for real-time telemetry emitted by Sokrat Voice:
 
 ```javascript
 window.addEventListener('message', (event) => {
@@ -521,20 +533,41 @@ window.addEventListener('message', (event) => {
 
     switch (data.type) {
         case 'sokrat.voice.ready':
-            console.log('Phone initialized and ready');
+            console.log('Phone ready');
             break;
 
         case 'sokrat.voice.incoming':
-            console.log('Incoming call from:', data.payload.phone, 'Call ID:', data.payload.callId);
-            // Trigger CRM Lead Pop Screen!
+            // Fires instantly when GSM/SIP call rings the agent
+            console.log('Lead incoming call:', {
+                phone: data.payload.phone,
+                callerName: data.payload.callerName,
+                callId: data.payload.callId,
+                extension: data.payload.extension,
+                timestamp: data.payload.timestamp
+            });
+            // POP LEAD SCREEN IN CRM:
+            // openLeadModal(data.payload.phone);
             break;
 
         case 'sokrat.voice.call_state':
-            console.log('Call state changed:', data.payload.state); // 'ringing', 'in_call', 'ended'
+            // Fires on 'ringing', 'in_call', or 'ended'
+            if (data.payload.state === 'in_call') {
+                console.log('Call connected! Timer started:', data.payload.startTime);
+            } else if (data.payload.state === 'ended') {
+                console.log('Call ended! Summary for CRM logging:', {
+                    callId: data.payload.callId,
+                    phone: data.payload.phone,
+                    durationSec: data.payload.durationSec,
+                    outcome: data.payload.outcome, // 'answered', 'declined', 'busy'
+                    timestamp: data.payload.timestamp
+                });
+                // SAVE CALL LOG RECORD TO CRM DB:
+                // saveCallRecord(data.payload);
+            }
             break;
 
         case 'sokrat.voice.state':
-            console.log('Current full phone state:', data.payload);
+            console.log('Full phone state snapshot:', data.payload);
             break;
     }
 });

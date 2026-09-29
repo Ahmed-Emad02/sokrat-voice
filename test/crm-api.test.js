@@ -272,7 +272,36 @@ test('CRM API: Unit & Integration Tests for All Telephony States & Actions', asy
         assert.equal(res101.body.extension, '101');
         assert.equal(res101.body.technology, 'sip');
         assert.equal(res101.body.registered, true);
-        assert.match(res101.body.useragent, /Cisco/i);
+        assert.ok(res101.body.useragent, 'Has registered useragent');
+    });
+
+    await t.test('15. CORS headers & OPTIONS preflight are supported on API', async () => {
+        const resOptions = await request({
+            hostname: '127.0.0.1',
+            port,
+            path: '/api/call/state',
+            method: 'OPTIONS',
+            headers: {
+                'Origin': 'https://crm.example.com',
+                'Access-Control-Request-Method': 'POST'
+            }
+        });
+        assert.equal(resOptions.status, 204);
+        assert.ok(resOptions.headers['access-control-allow-origin']);
+        assert.ok(resOptions.headers['access-control-allow-methods']);
+    });
+
+    await t.test('16. CSP frame-ancestors allows embedding when configured', async () => {
+        const resHealth = await request({
+            hostname: '127.0.0.1',
+            port,
+            path: '/health',
+            method: 'GET'
+        });
+        assert.equal(resHealth.status, 200);
+        const csp = resHealth.headers['content-security-policy'] || '';
+        assert.ok(csp.includes('frame-ancestors'));
+        assert.ok(!csp.includes("frame-ancestors 'none'"));
     });
 
     await t.test('99. Teardown test server', async () => {

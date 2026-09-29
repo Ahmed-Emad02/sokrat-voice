@@ -31,13 +31,28 @@ const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
 
+// --- CORS & PREFLIGHT MIDDLEWARE (For CRM Cross-Origin REST APIs) ---
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
+
 // --- SECURITY HEADERS MIDDLEWARE ---
 app.use((req, res, next) => {
+    const allowedFrameAncestors = process.env.ALLOWED_FRAME_ANCESTORS || "'self' https: http:";
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob: data:; connect-src 'self' wss: ws: https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; frame-ancestors 'none';"
+        `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob: data:; connect-src 'self' wss: ws: https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; frame-ancestors ${allowedFrameAncestors};`
     );
-    res.setHeader('X-Frame-Options', 'DENY');
+    if (allowedFrameAncestors === "'none'") {
+        res.setHeader('X-Frame-Options', 'DENY');
+    }
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
