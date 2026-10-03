@@ -5218,7 +5218,11 @@ body.is-embedded .keypad-btn {
                 <button type="button" class="titlebar-btn" id="titlebarReloadBtn" onclick="window.softphoneUi.reloadConnection()" title="<%= isRtl ? 'إعادة تحديث الاتصال بالسنترال' : 'Reload Connection' %>">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                 </button>
-                <!-- 2. Open in Persistent Popout Window -->
+                <!-- 2. Call Logs / Call History Button -->
+                <button type="button" class="titlebar-btn" id="titlebarCallLogsBtn" onclick="window.softphoneUi.toggleCallLogs()" title="<%= isRtl ? 'سجل المكالمات' : 'Call Logs' %>">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </button>
+                <!-- 3. Open in Persistent Popout Window -->
                 <button type="button" class="titlebar-btn" id="titlebarPopoutBtn" onclick="window.softphoneUi.openPersistentWindow()" title="<%= isRtl ? 'فتح في نافذة مستقلة دائمة' : 'Open in Persistent Window' %>">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 </button>
@@ -8259,10 +8263,26 @@ body.is-embedded .keypad-btn {
                 }
             });
 
+            const callLogsBtn = document.getElementById('titlebarCallLogsBtn');
+            if (callLogsBtn) callLogsBtn.classList.toggle('active', tabName === 'history');
+
             if (tabName === 'contacts') {
                 this.renderContacts();
             } else if (tabName === 'history') {
                 this.loadCallLogs();
+            }
+        }
+
+        toggleCallLogs(line = 'line1') {
+            if (line === 'line2' && this.line2Core) {
+                const isLine2History = (this.activeTabLine2 === 'history');
+                this.switchTabLine2(isLine2History ? 'dialer' : 'history');
+                return;
+            }
+            if (this.activeTab === 'history') {
+                this.switchTab('dialer');
+            } else {
+                this.switchTab('history');
             }
         }
         // --- SPEAKER / INCOMING AUDIO MUTE ---

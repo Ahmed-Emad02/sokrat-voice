@@ -666,10 +666,26 @@
                 }
             });
 
+            const callLogsBtn = document.getElementById('titlebarCallLogsBtn');
+            if (callLogsBtn) callLogsBtn.classList.toggle('active', tabName === 'history');
+
             if (tabName === 'contacts') {
                 this.renderContacts();
             } else if (tabName === 'history') {
                 this.loadCallLogs();
+            }
+        }
+
+        toggleCallLogs(line = 'line1') {
+            if (line === 'line2' && this.line2Core) {
+                const isLine2History = (this.activeTabLine2 === 'history');
+                this.switchTabLine2(isLine2History ? 'dialer' : 'history');
+                return;
+            }
+            if (this.activeTab === 'history') {
+                this.switchTab('dialer');
+            } else {
+                this.switchTab('history');
             }
         }
         // --- SPEAKER / INCOMING AUDIO MUTE ---
