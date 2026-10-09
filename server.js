@@ -17,10 +17,10 @@ let dbPool = null;
 if (mysql) {
     try {
         dbPool = mysql.createPool({
-            host: '127.0.0.1',
-            user: 'root',
-            password: 'admin',
-            database: 'asterisk',
+            host: process.env.DB_HOST || '127.0.0.1',
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASS !== undefined ? process.env.DB_PASS : 'admin',
+            database: process.env.DB_NAME || 'asterisk',
             waitForConnections: true,
             connectionLimit: 5
         });
@@ -100,8 +100,13 @@ async function fetchPbxExtensions() {
     let allExtensions = [];
     let webrtcExtensions = [];
 
+    const dbUser = process.env.DB_USER || 'root';
+    const dbPass = process.env.DB_PASS ? `-p${process.env.DB_PASS}` : '-padmin';
+    const dbHost = process.env.DB_HOST || '127.0.0.1';
+    const dbName = process.env.DB_NAME || 'asterisk';
+
     try {
-        const cmdAll = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT u.extension, u.name, COALESCE(d.tech, 'sip') FROM users u LEFT JOIN devices d ON d.id = u.extension ORDER BY CAST(u.extension AS UNSIGNED) ASC;" 2>/dev/null`;
+        const cmdAll = `/usr/bin/mysql -h ${dbHost} -u ${dbUser} ${dbPass} -D ${dbName} -N -e "SELECT u.extension, u.name, COALESCE(d.tech, 'sip') FROM users u LEFT JOIN devices d ON d.id = u.extension ORDER BY CAST(u.extension AS UNSIGNED) ASC;" 2>/dev/null`;
         const { stdout: outAll } = await execAsync(cmdAll, { timeout: 3000 });
         if (outAll && outAll.trim()) {
             allExtensions = outAll.trim().split('\n').filter(Boolean).map(line => {
@@ -110,7 +115,7 @@ async function fetchPbxExtensions() {
             });
         }
 
-        const cmdWeb = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT DISTINCT u.extension, u.name, COALESCE(d.tech, 'pjsip') FROM users u LEFT JOIN devices d ON d.id = u.extension LEFT JOIN sip s_trans ON s_trans.id = u.extension AND s_trans.keyword = 'transport' LEFT JOIN sip s_avpf ON s_avpf.id = u.extension AND s_avpf.keyword = 'avpf' LEFT JOIN sip s_webrtc ON s_webrtc.id = u.extension AND s_webrtc.keyword = 'webrtc' WHERE (d.tech = 'pjsip' OR s_trans.data LIKE '%ws%' OR s_avpf.data = 'yes' OR s_webrtc.data = 'yes') ORDER BY CAST(u.extension AS UNSIGNED) ASC;" 2>/dev/null`;
+        const cmdWeb = `/usr/bin/mysql -h ${dbHost} -u ${dbUser} ${dbPass} -D ${dbName} -N -e "SELECT DISTINCT u.extension, u.name, COALESCE(d.tech, 'pjsip') FROM users u LEFT JOIN devices d ON d.id = u.extension LEFT JOIN sip s_trans ON s_trans.id = u.extension AND s_trans.keyword = 'transport' LEFT JOIN sip s_avpf ON s_avpf.id = u.extension AND s_avpf.keyword = 'avpf' LEFT JOIN sip s_webrtc ON s_webrtc.id = u.extension AND s_webrtc.keyword = 'webrtc' WHERE (d.tech = 'pjsip' OR s_trans.data LIKE '%ws%' OR s_avpf.data = 'yes' OR s_webrtc.data = 'yes') ORDER BY CAST(u.extension AS UNSIGNED) ASC;" 2>/dev/null`;
         const { stdout: outWeb } = await execAsync(cmdWeb, { timeout: 3000 });
         if (outWeb && outWeb.trim()) {
             webrtcExtensions = outWeb.trim().split('\n').filter(Boolean).map(line => {
@@ -269,7 +274,11 @@ app.get(['/api/extension-policy/:ext', '/phone/api/extension-policy/:ext'], asyn
             } catch (_) {}
         }
         const safeExt = ext.replace(/[^0-9A-Za-z_-]/g, '');
-        const cmd = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -e "SELECT extension, auto_answer, dnd, COALESCE(disable_outbound_ringing_cancel, 0) FROM extension_policies WHERE extension = '${safeExt}'" 2>/dev/null`;
+        const dbUser = process.env.DB_USER || 'root';
+        const dbPass = process.env.DB_PASS ? `-p${process.env.DB_PASS}` : '-padmin';
+        const dbHost = process.env.DB_HOST || '127.0.0.1';
+        const dbName = process.env.DB_NAME || 'asterisk';
+        const cmd = `/usr/bin/mysql -h ${dbHost} -u ${dbUser} ${dbPass} -D ${dbName} -N -e "SELECT extension, auto_answer, dnd, COALESCE(disable_outbound_ringing_cancel, 0) FROM extension_policies WHERE extension = '${safeExt}'" 2>/dev/null`;
         const { stdout } = await execAsync(cmd, { timeout: 3000 });
         if (stdout && stdout.trim()) {
             const [extension, auto_answer, dnd, disable_cancel] = stdout.trim().split('\t');
@@ -344,7 +353,11 @@ app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req
                 ORDER BY (a.active_flag = 1) DESC, a.updated_at DESC
                 LIMIT 1
             `.replace(/\\s+/g, ' ').trim();
-            const cmd = `/usr/bin/mysql -h 127.0.0.1 -u root -padmin -D asterisk -N -B -e "${sql.replace(/"/g, '\\\\"')}" 2>/dev/null`;
+            const dbUser = process.env.DB_USER || 'root';
+            const dbPass = process.env.DB_PASS ? `-p${process.env.DB_PASS}` : '-padmin';
+            const dbHost = process.env.DB_HOST || '127.0.0.1';
+            const dbName = process.env.DB_NAME || 'asterisk';
+            const cmd = `/usr/bin/mysql -h ${dbHost} -u ${dbUser} ${dbPass} -D ${dbName} -N -B -e "${sql.replace(/"/g, '\\\\"')}" 2>/dev/null`;
             const { stdout } = await execAsync(cmd, { timeout: 3000 });
             const line = (stdout || '').trim().split('\\n')[0];
             if (line) {

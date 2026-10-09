@@ -5433,11 +5433,11 @@ body.is-embedded .keypad-btn {
                     </div>
                     <div>
                         <label class="text-xs font-bold text-secondary"><%= isRtl ? 'نطاق الخادم (Domain/IP):' : 'SIP Domain / Host IP:' %></label>
-                        <input type="text" id="presetDomainInput" class="input-text font-mono mt-1" placeholder="192.168.100.128">
+                        <input type="text" id="presetDomainInput" class="input-text font-mono mt-1" placeholder="pbx.yourcompany.com">
                     </div>
                     <div>
                         <label class="text-xs font-bold text-secondary"><%= isRtl ? 'رابط WebSocket (WSS):' : 'WebSocket WSS URL:' %></label>
-                        <input type="text" id="presetWssInput" class="input-text font-mono mt-1" placeholder="wss://192.168.100.128:8089/ws">
+                        <input type="text" id="presetWssInput" class="input-text font-mono mt-1" placeholder="wss://pbx.yourcompany.com:8089/ws">
                     </div>
                     <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; margin-top: 4px;">
                         <input type="checkbox" id="presetAutoConnectCheckbox" checked style="accent-color: var(--accent-color);">
@@ -7855,14 +7855,15 @@ body.is-embedded .keypad-btn {
                 this.updateViewMode('console');
                 setTimeout(async () => {
                     try {
-                        let targetWss = ep.wssUrl || (window.location.protocol === 'https:' ? 'wss://100.110.36.17:8443/ws' : 'ws://100.110.36.17:8088/ws');
+                        const defaultHost = window.location.hostname || 'localhost';
+                        let targetWss = ep.wssUrl || (window.location.protocol === 'https:' ? `wss://${defaultHost}:8443/ws` : `ws://${defaultHost}:8088/ws`);
                         if (window.location.protocol === 'http:' && targetWss.startsWith('wss://')) {
                             targetWss = targetWss.replace(/^wss:/, 'ws:').replace(/:8443\//, ':8088/');
                         }
                         await this.core.connect({
                             id: ep.id || ('ext_' + ep.extension),
                             extension: String(ep.extension),
-                            sipDomain: '100.110.36.17',
+                            sipDomain: defaultHost,
                             wssUrl: targetWss,
                             name: ep.name || ('Ext ' + ep.extension),
                             label: `Ext ${ep.extension}`

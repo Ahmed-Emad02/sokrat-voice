@@ -258,14 +258,15 @@
                 this.updateViewMode('console');
                 setTimeout(async () => {
                     try {
-                        let targetWss = ep.wssUrl || (window.location.protocol === 'https:' ? 'wss://100.110.36.17:8443/ws' : 'ws://100.110.36.17:8088/ws');
+                        const defaultHost = window.location.hostname || 'localhost';
+                        let targetWss = ep.wssUrl || (window.location.protocol === 'https:' ? `wss://${defaultHost}:8443/ws` : `ws://${defaultHost}:8088/ws`);
                         if (window.location.protocol === 'http:' && targetWss.startsWith('wss://')) {
                             targetWss = targetWss.replace(/^wss:/, 'ws:').replace(/:8443\//, ':8088/');
                         }
                         await this.core.connect({
                             id: ep.id || ('ext_' + ep.extension),
                             extension: String(ep.extension),
-                            sipDomain: '100.110.36.17',
+                            sipDomain: defaultHost,
                             wssUrl: targetWss,
                             name: ep.name || ('Ext ' + ep.extension),
                             label: `Ext ${ep.extension}`
