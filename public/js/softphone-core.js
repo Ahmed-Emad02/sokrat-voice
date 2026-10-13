@@ -1274,6 +1274,19 @@
                     callEntry.status = 'progress';
                 }
                 this.emit('callUpdated', callEntry);
+                if (session.connection && this.remoteAudioEl) {
+                    const receivers = session.connection.getReceivers ? session.connection.getReceivers() : [];
+                    for (const r of receivers) {
+                        if (r.track && r.track.kind === 'audio') {
+                            const stream = new MediaStream([r.track]);
+                            this.remoteAudioEl.srcObject = stream;
+                            this.remoteAudioEl.play().catch(() => {});
+                            this.stopRingback();
+                            this.startSpeakerVuMeter(stream);
+                            break;
+                        }
+                    }
+                }
             });
 
             session.on('confirmed', () => {
