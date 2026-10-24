@@ -292,6 +292,12 @@ app.get(['/api/extension-policy/:ext', '/phone/api/extension-policy/:ext'], asyn
     } catch (_) {}
     res.json({ success: true, policy });
 });
+function maskPhoneNumber(raw) {
+    const phone = String(raw == null ? '' : raw).trim();
+    if (!phone || phone.length <= 6) return phone;
+    return phone.slice(0, 3) + '*'.repeat(phone.length - 6) + phone.slice(-3);
+}
+
 // Active campaign lead assigned to a registered softphone extension.
 // Keep this endpoint read-only and uncached: it is polled by the standalone voice UI.
 app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req, res) => {
@@ -313,6 +319,7 @@ app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req
                         l.id AS lead_id,
                         c.name AS campaign_name,
                         c.lead_fields,
+                        c.mask_phone_numbers,
                         l.phone_number,
                         l.first_name,
                         l.last_name,
@@ -340,6 +347,7 @@ app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req
                     l.id AS lead_id,
                     c.name AS campaign_name,
                     TO_BASE64(COALESCE(c.lead_fields, '')) AS lead_fields_b64,
+                    COALESCE(c.mask_phone_numbers, 0) AS mask_phone_numbers,
                     l.phone_number,
                     l.first_name,
                     l.last_name,
@@ -362,21 +370,22 @@ app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req
             const line = (stdout || '').trim().split('\\n')[0];
             if (line) {
                 const parts = line.split('\\t');
-                if (parts.length >= 10) {
+                if (parts.length >= 11) {
                     let lf = '';
                     let cd = '';
                     try { lf = Buffer.from(parts[4], 'base64').toString('utf8'); } catch (_) {}
-                    try { cd = Buffer.from(parts[9], 'base64').toString('utf8'); } catch (_) {}
+                    try { cd = Buffer.from(parts[10], 'base64').toString('utf8'); } catch (_) {}
                     row = {
                         attempt_uuid: parts[0],
                         campaign_id: parts[1],
                         lead_id: parts[2],
                         campaign_name: parts[3],
                         lead_fields: lf,
-                        phone_number: parts[5],
-                        first_name: parts[6],
-                        last_name: parts[7],
-                        company: parts[8],
+                        mask_phone_numbers: Number(parts[5]) ? 1 : 0,
+                        phone_number: parts[6],
+                        first_name: parts[7],
+                        last_name: parts[8],
+                        company: parts[9],
                         custom_data: cd
                     };
                 }
@@ -409,7 +418,7 @@ app.get(['/api/dialer/active-lead', '/phone/api/dialer/active-lead'], async (req
                 campaign_id: row.campaign_id == null ? null : Number(row.campaign_id),
                 lead_id: row.lead_id == null ? null : Number(row.lead_id),
                 campaign_name: row.campaign_name || '',
-                phone_number: row.phone_number || '',
+                phone_number: row.mask_phone_numbers ? maskPhoneNumber(row.phone_number) : (row.phone_number || ''),
                 first_name: row.first_name || '',
                 last_name: row.last_name || '',
                 company: row.company || '',
